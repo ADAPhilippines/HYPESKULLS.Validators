@@ -30,7 +30,7 @@ common project-config
 library
     import:             base, project-config
     hs-source-dirs:     app
-    exposed-modules:    HSSwapEmulator
+    exposed-modules:    HSVTClaimEmulator
     
     if flag(unexpected_thunks)
       cpp-options: -DUNEXPECTED_THUNKS
@@ -45,7 +45,7 @@ library
                         , plutus-tx
                         , plutus-contract
                         , text
-                        , hosky-swap-validator
+                        , hypeskulls-validators
                         , cardano-prelude
 
     ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
