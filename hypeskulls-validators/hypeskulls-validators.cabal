@@ -1,0 +1,52 @@
+cabal-version:      2.4
+name:               hypeskulls-validators
+description:        Validator collection for the HYPESKULLS project
+author:             SAIB
+maintainer:         hello@saib.dev
+version:            0.1.0.0
+
+Flag unexpected_thunks
+  Description:   Turn on unexpected thunks checks
+  Default:       False
+
+common base
+  build-depends: base >= 4.14 && < 4.15
+
+common project-config
+  default-language:     Haskell2010
+
+  default-extensions:   NoImplicitPrelude
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wincomplete-uni-patterns
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wunused-packages
+
+library
+    import:             base, project-config
+    hs-source-dirs:     app
+    exposed-modules:    HSVTClaimValidator
+                        HSVTClaimCommon
+    
+    if flag(unexpected_thunks)
+      cpp-options: -DUNEXPECTED_THUNKS
+    build-depends:      bytestring
+                        , aeson
+                        , containers
+                        , cardano-api
+                        , plutus-core
+                        , plutus-ledger
+                        , plutus-ledger-api
+                        , plutus-tx
+                        , plutus-tx-plugin
+                        , serialise
+                        , plutus-contract
+                        , plutus-chain-index
+                        , text
+                        , plutus-pretty
+
+    ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+
