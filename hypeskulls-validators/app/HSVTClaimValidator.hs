@@ -38,27 +38,30 @@ import qualified    Plutus.V1.Ledger.Ada    as Ada
 import              PlutusTx.Skeleton
 
 import              HSVTClaimCommon
-import Data.Aeson.Types (Value(Bool))
 
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext -> P.Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "No matching OS HYPESKULL in input"    hasMatchingOSHYPESKULL          &&&
-                                            traceIfFalse "Shadow HYPESKULL not disposed"        isMarkerNFTDisposed             &&&
+        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciShadowHSPrefix)    &&&
+                                            traceIfFalse "No matching OS HYPESKULL in input"    hasMatchingOSHYPESKULL              &&&
+                                            traceIfFalse "Shadow HYPESKULL not disposed"        isMarkerNFTDisposed                 &&&
                                             traceIfFalse "Minimum lovelace not returned"        isMinUtxoLovelaceReturned
 
-        (VTRDatum _, CommitRandom)      ->  traceIfFalse "VTRandom UTXO not available"          isVTRandUtxoAvailable           &&&
-                                            traceIfFalse "VTRandom Token not returned properly" isVTRReturnedProperly           &&&
-                                            traceIfFalse "Invalid Datum"                        isVTRCommitDatumValid           &&&
+        (VTRDatum _, CommitRandom)      ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTRandPrefix)      &&&
+                                            traceIfFalse "VTRandom UTXO not available"          isVTRandUtxoAvailable               &&&
+                                            traceIfFalse "VTRandom Token not returned properly" isVTRReturnedProperly               &&&
+                                            traceIfFalse "Invalid Datum"                        isVTRCommitDatumValid               &&&
                                             traceIfFalse "Wrong amount of VTR tokens committed" isVTRCommitTokenAmountCorrect
 
-        (VTRDatum _, UseRandom)         ->  traceIfFalse "Spender not allowed"                  isVTRSpendingAllowed            &&&
-                                            traceIfFalse "VTR Token not disposed"               isMarkerNFTDisposed             &&&
+        (VTRDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTRandPrefix)      &&&
+                                            traceIfFalse "Spender not allowed"                  isVTRSpendingAllowed                &&&
+                                            traceIfFalse "VTR Token not disposed"               isMarkerNFTDisposed                 &&&
                                             traceIfFalse "Minimum lovelace not returned"        isMinUtxoLovelaceReturned
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Not allowed to claim VT"              canClaimVT
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTPrefix)      &&&
+                                            traceIfFalse "Not allowed to claim VT"              canClaimVT
 
         _                               ->  traceIfFalse "Datum and redeemer does not match"    False
     where
@@ -81,21 +84,21 @@ mkValidator ContractInfo{..} datum r ctx =
                     [(_, tn, _)]    -> Just tn
                     _               -> Nothing
 
-        markerSig :: Maybe BuiltinByteString
-        markerSig = 
+        isMarkerValid :: BuiltinByteString -> Bool
+        isMarkerValid bs =
             case markerTN of
-                Nothing     -> Nothing
-                Just tn     -> Just $ P.sliceByteString 0 3 $ unTokenName tn
+                Nothing     -> traceIfFalse "Invalid input utxo selected" False
+                Just tn     -> bs == P.sliceByteString 0 3 (unTokenName tn)
 
         hasMatchingOSHYPESKULL :: Bool
-        hasMatchingOSHYPESKULL = 
+        hasMatchingOSHYPESKULL =
             case markerTN of
                 Nothing     -> traceIfFalse "Invalid input utxo selected" False
                 Just tn     -> assetClassValueOf (valueSpent info) (AssetClass (ciPolicy, tn')) == 1
                     where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName tn
 
         isMarkerNFTDisposed :: Bool
-        isMarkerNFTDisposed = 
+        isMarkerNFTDisposed =
             case markerTN of
                 Nothing     -> traceIfFalse "Invalid input utxo selected" False
                 Just tn     -> assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy,tn)) == 1
@@ -107,20 +110,19 @@ mkValidator ContractInfo{..} datum r ctx =
         isMinUtxoLovelaceReturned = totalNFTsReturned * ciMinUtxoLovelace <= Ada.getLovelace (Ada.fromValue $ valuePaidTo info ciAdminPKH)
 
         isVTRandUtxoAvailable :: Bool
-        isVTRandUtxoAvailable = 
+        isVTRandUtxoAvailable =
             case datum of
                 VTRDatum pkh    -> pkh == ciDefaultVTRandOwner
                 _               -> False
 
-
         getContinuingMarkerTxOut :: Maybe TxOut
-        getContinuingMarkerTxOut = 
+        getContinuingMarkerTxOut =
             case markerTN of
                 Nothing -> Nothing
                 Just tn -> markerOut
                     where
-                        nftOuts     =   [ o 
-                                        | o <- getContinuingOutputs ctx 
+                        nftOuts     =   [ o
+                                        | o <- getContinuingOutputs ctx
                                         , 2 == length (Value.flattenValue (txOutValue o))
                                         , AssetCount (ciPolicy, tn, 1) `elem` [ AssetCount x| x <- Value.flattenValue (txOutValue o)]]
                         markerOut   = case nftOuts of
@@ -128,39 +130,39 @@ mkValidator ContractInfo{..} datum r ctx =
                             _       -> Nothing
 
         isVTRReturnedProperly :: Bool
-        isVTRReturnedProperly = 
+        isVTRReturnedProperly =
             case getContinuingMarkerTxOut of
                 Nothing -> False
                 Just _  -> True
-        
+
         getDatum :: TxOut -> Maybe Datum
         getDatum o = do
             dh <- txOutDatum o
             dh `findDatum` info
 
         getVTClaimDatum :: Maybe TxOut -> Maybe VTClaimDatum
-        getVTClaimDatum o = 
+        getVTClaimDatum o =
             case o of
                 Nothing -> Nothing
-                Just o  -> do
-                    Datum d' <- getDatum o
+                Just o'  -> do
+                    Datum d' <- getDatum o'
                     PlutusTx.fromBuiltinData d'
 
         isVTRCommitDatumValid :: Bool
-        isVTRCommitDatumValid = 
+        isVTRCommitDatumValid =
             case getVTClaimDatum getContinuingMarkerTxOut of
-                Nothing             -> False 
+                Nothing             -> False
                 Just (VTRDatum pkh) -> pkh == sig
 
         isVTRCommitTokenAmountCorrect :: Bool
         isVTRCommitTokenAmountCorrect = length vtrNFTsSpent == 2 * length shNFTsSpent
-            where 
+            where
                 hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valueSpent info), cs == ciPolicy]
-                vtrNFTsSpent = filter (\(_,tn,_) -> "VTR" == P.sliceByteString 0 3 (unTokenName tn)) hypeNFTsSpent
-                shNFTsSpent = filter (\(_,tn,_) -> "SH_" == P.sliceByteString 0 3 (unTokenName tn)) hypeNFTsSpent
+                vtrNFTsSpent = filter (\(_,tn,_) -> ciVTRandPrefix == P.sliceByteString 0 3 (unTokenName tn)) hypeNFTsSpent
+                shNFTsSpent = filter (\(_,tn,_) -> ciShadowHSPrefix == P.sliceByteString 0 3 (unTokenName tn)) hypeNFTsSpent
 
         isVTRSpendingAllowed :: Bool
-        isVTRSpendingAllowed = 
+        isVTRSpendingAllowed =
             case datum of
                 VTRDatum pkh    -> txSignedBy info pkh
                 _               -> False
@@ -172,16 +174,16 @@ mkValidator ContractInfo{..} datum r ctx =
                     where
                         hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valueSpent info), cs == ciPolicy]
                         matchingVTR = filter (\(_,tn,_) -> hash == sha2_256 (ciNonce `appendByteString` unTokenName tn)) hypeNFTsSpent
-                        mbTN = 
+                        mbTN =
                             case matchingVTR of
                                 [(_,tn',_)] -> Just tn'
                                 _           -> Nothing
                 _                           -> Nothing
 
         getInputTxOutWithVTR :: Maybe TxOut
-        getInputTxOutWithVTR = 
+        getInputTxOutWithVTR =
             case getMatchingVTRTN of
-                Nothing -> Nothing 
+                Nothing -> Nothing
                 Just tn ->
                     case [ o | TxInInfo _ o <- txInfoInputs info, valueOf (txOutValue o) ciPolicy tn == 1 ] of
                         [o] -> Just o
@@ -190,22 +192,8 @@ mkValidator ContractInfo{..} datum r ctx =
         canClaimVT :: Bool
         canClaimVT =
             case getVTClaimDatum getInputTxOutWithVTR of
-                Nothing             -> False 
+                Nothing             -> False
                 Just (VTRDatum pkh) -> pkh == sig
-
-                        
-
-
-        -- check :: Bool
-        -- check = 
-        --     case getContinuingMarkerTxOut of
-        --         Nothing -> traceIfFalse "1" False
-        --         Just o  -> case getDatum o of
-        --             Nothing -> traceIfFalse "2" False 
-        --             Just (Datum d')  -> 
-        --                 case (PlutusTx.fromBuiltinData d' :: Maybe VTClaimDatum) of
-        --                     Nothing -> traceIfFalse "3" False 
-        --                     Just _  -> True
 
 
 
