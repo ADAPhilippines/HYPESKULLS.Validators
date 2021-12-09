@@ -11,7 +11,6 @@
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE NumericUnderscores     #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE FlexibleInstances      #-}
 
 
 module HSVTClaimCommon
@@ -20,8 +19,8 @@ module HSVTClaimCommon
     , (&&&)
     , (|||)
     , VTClaimDatum (..)
-    , VTDatum (..)
     , VTClaimAction (..)
+    , AssetCount (..)
     ) where
 
 import              Data.Aeson (FromJSON, ToJSON)
@@ -36,8 +35,10 @@ data ContractInfo = ContractInfo
     , ciPolicy              :: !CurrencySymbol
     , ciMinUtxoLovelace     :: !Integer
     , ciDefaultVTRandOwner  :: !PubKeyHash
+    , ciNonce               :: !BuiltinByteString
     , ciShadowHSPrefix      :: !BuiltinByteString
     , ciVTRandPrefix        :: !BuiltinByteString
+    , ciVTPrefix            :: !BuiltinByteString
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -48,27 +49,21 @@ contractInfo = ContractInfo
     , ciDefaultVTRandOwner  = ""
     , ciShadowHSPrefix      = "SH_"
     , ciVTRandPrefix        = "VTR"
+    , ciVTPrefix            = "HYP"
+    , ciNonce               = "testnonce"
     }
 
-data VTDatum = VTDatum 
-    { vtdOwner      :: !PubKeyHash
-    , vtdHash       :: !BuiltinByteString
-    } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
-
-data VTClaimDatum = CommitSkullDatum | CommitRandomDatum VTDatum | ClaimDatum VTDatum
+data VTClaimDatum = ShadowHSDatum | VTRDatum PubKeyHash | VTDatum BuiltinByteString
     deriving (Generic, ToJSON, FromJSON)
 
-instance Eq VTClaimDatum where
+newtype AssetCount = AssetCount (CurrencySymbol, TokenName, Integer)
+instance Eq AssetCount where
     {-# INLINABLE (==) #-}
-    CommitSkullDatum == CommitSkullDatum = True
+    AssetCount (acs, atn, an) == AssetCount (bcs, btn, bn) =    acs == bcs &&
+                                                                atn == btn &&
+                                                                an  == bn
 
-instance Eq (CurrencySymbol, TokenName, Integer) where
-    {-# INLINABLE (==) #-}
-    (acs, atn, an) == (bcs, btn, bn) =  acs == bcs &&
-                                        atn == btn &&
-                                        an  == bn
-
-data VTClaimAction = CommitSkull | CommitRandom | Claim
+data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ClaimVT
     deriving (Generic, ToJSON, FromJSON)
 
 {-# INLINABLE (|||) #-}
@@ -79,9 +74,8 @@ data VTClaimAction = CommitSkull | CommitRandom | Claim
 (&&&) :: Bool -> Bool -> Bool
 (&&&) x y = if x then y else False
 
-PlutusTx.makeIsDataIndexed  ''VTDatum           [('VTDatum, 0)]
-PlutusTx.makeIsDataIndexed  ''VTClaimDatum      [('CommitSkullDatum, 0), ('CommitRandomDatum, 1), ('ClaimDatum, 2)]
-PlutusTx.makeIsDataIndexed  ''VTClaimAction     [('CommitSkull, 0), ('CommitRandom, 1), ('Claim, 2)]
+PlutusTx.makeIsDataIndexed  ''VTClaimDatum      [('ShadowHSDatum, 0), ('VTRDatum, 1), ('VTDatum, 2)]
+PlutusTx.makeIsDataIndexed  ''VTClaimAction     [('CommitSkull, 0), ('CommitRandom, 1), ('UseRandom, 2), ('ClaimVT, 3)]
 PlutusTx.makeIsDataIndexed  ''ContractInfo      [('ContractInfo, 0)]
 
 PlutusTx.makeLift           ''ContractInfo
