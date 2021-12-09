@@ -38,7 +38,7 @@ runEmulator = do
     emCfg :: EmulatorConfig
     emCfg = EmulatorConfig (Left $ Map.fromList [(wallet 1, v1), (wallet 2, v2), (wallet 3, defLovelace)]) def def
 
-    defLovelace :: Value 
+    defLovelace :: Value
     defLovelace = Ada.lovelaceValueOf 50_000_000
 
     v1 :: Value
@@ -50,13 +50,13 @@ runEmulator = do
             Value.singleton sHSCS "VTR_HS_0002" 1           <>
             Value.singleton sHSCS "HYPESKULLS_VT_0001" 1    <>
             Value.singleton sHSCS "HYPESKULLS_VT_0002" 1    <>
-            Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS" 1    
+            Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS" 1
 
     v2 :: Value
     v2 = defLovelace                                        <>
             Value.singleton sHSCS "HYPESKULL0001" 1         <>
             Value.singleton sHSCS "HYPESKULL0002" 1         <>
-            Value.singleton sHSCS "HYPESKULL0003" 1 
+            Value.singleton sHSCS "HYPESKULL0003" 1
 
     myTrace :: EmulatorTrace ()
     myTrace = do
@@ -65,15 +65,15 @@ runEmulator = do
         h3 <- activateContractWallet (wallet 3) endpoints
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" h1 SetupParams
-          { spShadowHSTN  = "SH_HYPESKULL0001"
-          , spVTRs        = [ ("VTR_HS_0001", VTRDatum (ciDefaultVTRandOwner contractInfo))
-                            , ("VTR_HS_0002", VTRDatum (ciDefaultVTRandOwner contractInfo))
-                            ]
-          , spVTs         = [ ("HYPESKULLS_VT_0001", VTDatum $ sha2_256 ((ciNonce contractInfo) `appendByteString` "VTR_HS_0001"))
-                            , ("HYPESKULLS_VT_0002", VTDatum $ sha2_256 ((ciNonce contractInfo) `appendByteString` "VTR_HS_0002"))
-                            , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ((ciNonce contractInfo) `appendByteString` "VTR_HS_0002"))
-                            ]
-          }
+            { spShadowHSTN  = "SH_HYPESKULL0001"
+            , spVTRs        =   [ ("VTR_HS_0001", VTRDatum (ciDefaultVTRandOwner contractInfo))
+                                , ("VTR_HS_0002", VTRDatum (ciDefaultVTRandOwner contractInfo))
+                                ]
+            , spVTs         =   [ ("HYPESKULLS_VT_0001", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0001"))
+                                , ("HYPESKULLS_VT_0002", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0002"))
+                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0002"))
+                                ]
+            }
         void $ Emulator.waitNSlots 1
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
@@ -81,10 +81,10 @@ runEmulator = do
         void $ Emulator.waitNSlots 3
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
-        callEndpoint @"claim" h2 ()
+        callEndpoint @"claim" h3 ()
         void $ Emulator.waitNSlots 1
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
 
-hash :: BuiltinByteString -> BuiltinByteString 
+hash :: BuiltinByteString -> BuiltinByteString
 hash s = sha2_256 (ciNonce contractInfo `appendByteString` s)

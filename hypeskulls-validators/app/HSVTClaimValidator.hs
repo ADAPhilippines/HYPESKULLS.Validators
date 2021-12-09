@@ -41,7 +41,7 @@ import              HSVTClaimCommon
 
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext -> P.Bool
+mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
         (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciShadowHSPrefix)    &&&
@@ -60,10 +60,11 @@ mkValidator ContractInfo{..} datum r ctx =
                                             traceIfFalse "VTR Token not disposed"               isMarkerNFTDisposed                 &&&
                                             traceIfFalse "Minimum lovelace not returned"        isMinUtxoLovelaceReturned
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTPrefix)      &&&
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTPrefix)          &&&
                                             traceIfFalse "Not allowed to claim VT"              canClaimVT
 
         _                               ->  traceIfFalse "Datum and redeemer does not match"    False
+
     where
         info :: TxInfo
         info = scriptContextTxInfo ctx
