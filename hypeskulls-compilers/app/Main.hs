@@ -22,6 +22,7 @@ import qualified  PlutusTx
 import qualified  Data.ByteString.Short as SBS
 import            HSVTClaimCommon
 import            HSVTClaimValidator
+import            HSVaporizeValidator
 import            Data.String (IsString(fromString))
 import            PlutusTx.Builtins.Class (stringToBuiltinByteString)
 import            Plutus.V1.Ledger.Crypto
@@ -36,7 +37,7 @@ main = do
   let nargs = length args
   let scriptname = "./scripts/" ++ if nargs > 0 then head args else  "result.plutus"
   putStrLn $ "Writing output to: " ++ scriptname
-  writePlutusScript scriptname hsVTClaimSerialised
+  writePlutusScript scriptname hsVaporizeSerialised
 
 
 writePlutusScript :: FilePath -> PlutusScript PlutusScriptV1 -> IO ()

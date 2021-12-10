@@ -30,6 +30,8 @@ library
     hs-source-dirs:     app
     exposed-modules:    HSVTClaimValidator
                         HSVTClaimCommon
+                        HSVaporizeValidator
+                        HSVaporizeCommon
     
     if flag(unexpected_thunks)
       cpp-options: -DUNEXPECTED_THUNKS
@@ -48,5 +50,5 @@ library
                         , text
                         , plutus-pretty
 
-    ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+    ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-specialise
 

@@ -6,6 +6,7 @@
 module HSVTClaimEmulator
     ( runEmulator
     , hash
+    , test
     ) where
 
 import              PlutusTx.Prelude        as Plutus
@@ -48,8 +49,7 @@ runEmulator = do
             Value.singleton sHSCS "SH_HYPESKULL0003" 1      <>
             Value.singleton sHSCS "VTR_HS_0001" 1           <>
             Value.singleton sHSCS "VTR_HS_0002" 1           <>
-            Value.singleton sHSCS "HYPESKULLS_VT_0001" 1    <>
-            Value.singleton sHSCS "HYPESKULLS_VT_0002" 1    <>
+            Value.singleton sHSCS "HYPESKULLS_VT_SP_EE" 2   <>
             Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS" 1
 
     v2 :: Value
@@ -69,8 +69,8 @@ runEmulator = do
             , spVTRs        =   [ ("VTR_HS_0001", VTRDatum (ciDefaultVTRandOwner contractInfo))
                                 , ("VTR_HS_0002", VTRDatum (ciDefaultVTRandOwner contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_0001", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0001"))
-                                , ("HYPESKULLS_VT_0002", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0002"))
+            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0001"))
+                                , ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0002"))
                                 , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 (ciNonce contractInfo `appendByteString` "VTR_HS_0002"))
                                 ]
             }
@@ -81,10 +81,19 @@ runEmulator = do
         void $ Emulator.waitNSlots 3
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
-        callEndpoint @"claim" h3 ()
+        callEndpoint @"claim" h2 ()
         void $ Emulator.waitNSlots 1
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
 
 hash :: BuiltinByteString -> BuiltinByteString
 hash s = sha2_256 (ciNonce contractInfo `appendByteString` s)
+
+getDiff :: Eq a => [a] -> [a] -> [a]
+getDiff xs [] = xs
+getDiff [] _ = []
+getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:xs
+
+
+test :: [Integer] -> [Integer] -> [Integer]
+test = getDiff

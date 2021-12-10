@@ -13,13 +13,14 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 
 
-module HSVTClaimCommon
+module HSVaporizeCommon
     ( ContractInfo (..)
     , contractInfo
     , (&&&)
     , (|||)
-    , VTClaimDatum (..)
-    , VTClaimAction (..)
+    , VaporizeDatum (..)
+    , VaporizeAction (..)
+    , VaporizeListDatum (..)
     , AssetCount (..)
     ) where
 
@@ -27,33 +28,37 @@ import              Data.Aeson (FromJSON, ToJSON)
 import              GHC.Generics
 import              Ledger
 import qualified    PlutusTx
+import              PlutusTx.Builtins.Internal
 import              PlutusTx.Prelude hiding (Semigroup (..), unless)
 import qualified    Prelude as Pr (Show (..), Eq)
 
 data ContractInfo = ContractInfo
-    { ciAdminPKH            :: !PubKeyHash
-    , ciPolicy              :: !CurrencySymbol
-    , ciMinUtxoLovelace     :: !Integer
-    , ciDefaultVTRandOwner  :: !PubKeyHash
-    , ciNonce               :: !BuiltinByteString
-    , ciShadowHSPrefix      :: !BuiltinByteString
-    , ciVTRandPrefix        :: !BuiltinByteString
-    , ciVTPrefix            :: !BuiltinByteString
+    { ciAdminPKH                :: !PubKeyHash
+    , ciPolicy                  :: !CurrencySymbol
+    , ciMinUtxoLovelace         :: !Integer
+    , ciPriceTierDelta          :: !Integer
+    , ciDefaultShadowHSOwner    :: !PubKeyHash
+    , ciVaporTokenName          :: !BuiltinByteString 
+    , ciPTTokenPrefix           :: !BuiltinByteString 
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
-    { ciAdminPKH            = "6ad510fe5e2eff4f367475f01ab79dc4cd1f2600bda02ab270577637"
-    , ciPolicy              = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
-    , ciMinUtxoLovelace     = 2_000_000
-    , ciDefaultVTRandOwner  = ""
-    , ciShadowHSPrefix      = "SH_"
-    , ciVTRandPrefix        = "VTR"
-    , ciVTPrefix            = "HYP"
-    , ciNonce               = "testnonce"
+    { ciAdminPKH                = "6ad510fe5e2eff4f367475f01ab79dc4cd1f2600bda02ab270577637"
+    , ciPolicy                  = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
+    , ciMinUtxoLovelace         = 2_000_000
+    , ciPriceTierDelta          = 10
+    , ciDefaultShadowHSOwner    = ""
+    , ciVaporTokenName          = "HYPESKULLS_VT_"
+    , ciPTTokenPrefix           = "VAP"
     }
 
-data VTClaimDatum = ShadowHSDatum | VTRDatum PubKeyHash | VTDatum BuiltinByteString
+data VaporizeListDatum = VaporizeListDatum
+    { vldPKH    :: !PubKeyHash
+    , vldList   :: ![BuiltinByteString]
+    } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
+
+data VaporizeDatum = ShadowHSDatum VaporizeListDatum | PTDatum Integer
     deriving (Generic, ToJSON, FromJSON)
 
 newtype AssetCount = AssetCount (CurrencySymbol, TokenName, Integer)
@@ -63,7 +68,7 @@ instance Eq AssetCount where
                                                                 atn == btn &&
                                                                 an  == bn
 
-data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ClaimVT
+data VaporizeAction = Vaporize | Deliver
     deriving (Generic, ToJSON, FromJSON)
 
 {-# INLINABLE (|||) #-}
@@ -74,8 +79,10 @@ data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ClaimVT
 (&&&) :: Bool -> Bool -> Bool
 (&&&) x y = if x then y else False
 
-PlutusTx.makeIsDataIndexed  ''VTClaimDatum      [('ShadowHSDatum, 0), ('VTRDatum, 1), ('VTDatum, 2)]
-PlutusTx.makeIsDataIndexed  ''VTClaimAction     [('CommitSkull, 0), ('CommitRandom, 1), ('UseRandom, 2), ('ClaimVT, 3)]
+
+PlutusTx.makeIsDataIndexed  ''VaporizeDatum     [('ShadowHSDatum, 0), ('PTDatum, 1)]
+PlutusTx.makeIsDataIndexed  ''VaporizeAction    [('Vaporize, 0), ('Deliver, 1)]
+PlutusTx.makeIsDataIndexed  ''VaporizeListDatum [('VaporizeListDatum, 0)]
 PlutusTx.makeIsDataIndexed  ''ContractInfo      [('ContractInfo, 0)]
 
 PlutusTx.makeLift           ''ContractInfo

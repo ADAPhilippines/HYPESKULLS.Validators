@@ -32,6 +32,8 @@ library
     hs-source-dirs:     app
     exposed-modules:    HSVTClaimEmulator
                         HSVTClaimOffchain
+                        HSVaporizeEmulator
+                        HSVaporizeOffchain
     
     if flag(unexpected_thunks)
       cpp-options: -DUNEXPECTED_THUNKS

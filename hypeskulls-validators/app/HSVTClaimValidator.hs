@@ -12,6 +12,7 @@
 {-# LANGUAGE NumericUnderscores     #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE BangPatterns           #-}
 -- This example is taken directly from cardano-api, written by Jordan Millar, IOHK
 
 module HSVTClaimValidator
@@ -35,8 +36,6 @@ import qualified    PlutusTx
 import              PlutusTx.Prelude        hiding (Semigroup (..), unless)
 import              Cardano.Api             ( PlutusScriptV1 )
 import qualified    Plutus.V1.Ledger.Ada    as Ada
-import              PlutusTx.Skeleton
-
 import              HSVTClaimCommon
 
 
@@ -44,26 +43,26 @@ import              HSVTClaimCommon
 mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciShadowHSPrefix)    &&&
-                                            traceIfFalse "No matching OS HYPESKULL in input"    hasMatchingOSHYPESKULL              &&&
-                                            traceIfFalse "Shadow HYPESKULL not disposed"        isMarkerNFTDisposed                 &&&
-                                            traceIfFalse "Minimum lovelace not returned"        isMinUtxoLovelaceReturned
+        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"            (isMarkerValid ciShadowHSPrefix)    &&&
+                                            traceIfFalse "No matching OS HYPESKULL  sent to self"    hasMatchingOSHYPESKULL              &&&
+                                            traceIfFalse "Shadow HYPESKULL not disposed"            isMarkerNFTDisposed                 &&&
+                                            traceIfFalse "Minimum lovelace not returned"            isMinUtxoLovelaceReturned
 
-        (VTRDatum _, CommitRandom)      ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTRandPrefix)      &&&
-                                            traceIfFalse "VTRandom UTXO not available"          isVTRandUtxoAvailable               &&&
-                                            traceIfFalse "VTRandom Token not returned properly" isVTRReturnedProperly               &&&
-                                            traceIfFalse "Invalid Datum"                        isVTRCommitDatumValid               &&&
-                                            traceIfFalse "Wrong amount of VTR tokens committed" isVTRCommitTokenAmountCorrect
+        (VTRDatum _, CommitRandom)      ->  traceIfFalse "Wrong input for this redeemer"            (isMarkerValid ciVTRandPrefix)      &&&
+                                            traceIfFalse "VTRandom UTXO not available"              isVTRandUtxoAvailable               &&&
+                                            traceIfFalse "VTRandom Token not returned properly"     isVTRReturnedProperly               &&&
+                                            traceIfFalse "Invalid Datum"                            isVTRCommitDatumValid               &&&
+                                            traceIfFalse "Wrong amount of VTR tokens committed"     isVTRCommitTokenAmountCorrect
 
-        (VTRDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTRandPrefix)      &&&
-                                            traceIfFalse "Spender not allowed"                  isVTRSpendingAllowed                &&&
-                                            traceIfFalse "VTR Token not disposed"               isMarkerNFTDisposed                 &&&
-                                            traceIfFalse "Minimum lovelace not returned"        isMinUtxoLovelaceReturned
+        (VTRDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"            (isMarkerValid ciVTRandPrefix)      &&&
+                                            traceIfFalse "Spender not allowed"                      isVTRSpendingAllowed                &&&
+                                            traceIfFalse "VTR Token not disposed"                   isMarkerNFTDisposed                 &&&
+                                            traceIfFalse "Minimum lovelace not returned"            isMinUtxoLovelaceReturned
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"        (isMarkerValid ciVTPrefix)          &&&
-                                            traceIfFalse "Not allowed to claim VT"              canClaimVT
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMarkerValid ciVTPrefix)          &&&
+                                            traceIfFalse "Not allowed to claim VT"                  canClaimVT
 
-        _                               ->  traceIfFalse "Datum and redeemer does not match"    False
+        _                               ->  traceIfFalse "Unsupported datum and redeemer pair"      False
 
     where
         info :: TxInfo
@@ -74,13 +73,13 @@ mkValidator ContractInfo{..} datum r ctx =
                 [pkh] -> pkh
 
         ownInputValue :: Value.Value
-        ownInputValue =
+        !ownInputValue =
             case findOwnInput ctx of
                 Nothing         -> Ada.lovelaceValueOf 1
                 Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
 
         markerTN :: Maybe TokenName
-        markerTN = let os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
+        !markerTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
                 case os of
                     [(_, tn, _)]    -> Just tn
                     _               -> Nothing
@@ -88,20 +87,20 @@ mkValidator ContractInfo{..} datum r ctx =
         isMarkerValid :: BuiltinByteString -> Bool
         isMarkerValid bs =
             case markerTN of
-                Nothing     -> traceIfFalse "Invalid input utxo selected" False
+                Nothing     -> False
                 Just tn     -> bs == P.sliceByteString 0 3 (unTokenName tn)
 
         hasMatchingOSHYPESKULL :: Bool
         hasMatchingOSHYPESKULL =
             case markerTN of
-                Nothing     -> traceIfFalse "Invalid input utxo selected" False
-                Just tn     -> assetClassValueOf (valueSpent info) (AssetClass (ciPolicy, tn')) == 1
+                Nothing     -> False
+                Just tn     -> assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
                     where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName tn
 
         isMarkerNFTDisposed :: Bool
         isMarkerNFTDisposed =
             case markerTN of
-                Nothing     -> traceIfFalse "Invalid input utxo selected" False
+                Nothing     -> False
                 Just tn     -> assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy,tn)) == 1
 
         totalNFTsReturned :: Integer
@@ -125,7 +124,8 @@ mkValidator ContractInfo{..} datum r ctx =
                         nftOuts     =   [ o
                                         | o <- getContinuingOutputs ctx
                                         , 2 == length (Value.flattenValue (txOutValue o))
-                                        , AssetCount (ciPolicy, tn, 1) `elem` [ AssetCount x| x <- Value.flattenValue (txOutValue o)]]
+                                        , AssetCount (ciPolicy, tn, 1) `elem` [ AssetCount x | x <- Value.flattenValue (txOutValue o)]
+                                        , Ada.getLovelace (Ada.fromValue(txOutValue o)) == ciMinUtxoLovelace]
                         markerOut   = case nftOuts of
                             [o]     -> Just o
                             _       -> Nothing
@@ -134,7 +134,7 @@ mkValidator ContractInfo{..} datum r ctx =
         isVTRReturnedProperly =
             case getContinuingMarkerTxOut of
                 Nothing -> False
-                Just _  -> True
+                Just _  ->  True
 
         getDatum :: TxOut -> Maybe Datum
         getDatum o = do
