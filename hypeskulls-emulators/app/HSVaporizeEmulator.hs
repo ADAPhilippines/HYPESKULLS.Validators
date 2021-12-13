@@ -41,20 +41,20 @@ runEmulator = do
     defLovelace = Ada.lovelaceValueOf 50_000_000
 
     v1 :: Value
-    v1 =    defLovelace                                     <>
-            Value.singleton sHSCS "SH_HYPESKULL0001"    1   <>
-            Value.singleton sHSCS "VAPOR_PT_001"        1          
+    v1 =    defLovelace                                         <>
+            Value.singleton sHSCS "SH_HYPESKULL0001"        1   <>
+            Value.singleton sHSCS "VAPOR_PT_001"            1   <>
+            Value.singleton sHSCS "HYPESKULL0001_MK_EE"     1       
 
     v2 :: Value
-    v2 = defLovelace                                        <>
-            Value.singleton sHSCS "HYPESKULL0001"       1   <>
-            Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"  1
+    v2 = defLovelace                                            <>
+            Value.singleton sHSCS "HYPESKULL0001"           1   <>
+            Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"     1
 
     myTrace :: EmulatorTrace ()
     myTrace = do
         h1 <- activateContractWallet (wallet 1) endpoints
         h2 <- activateContractWallet (wallet 2) endpoints
-        h3 <- activateContractWallet (wallet 3) endpoints
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" h1 SetupParams
             { spShadowHSTNs      =  [ ("SH_HYPESKULL0001",ShadowHSDatum (VaporizeListDatum "" ["SP_C","ADR_E"]))
@@ -66,4 +66,8 @@ runEmulator = do
         callEndpoint @"log"         h1 ()
         void $ Emulator.waitNSlots  1
         callEndpoint @"vaporize"    h2 70
+        void $ Emulator.waitNSlots  1
+        callEndpoint @"deliver"     h1 ()
+        void $ Emulator.waitNSlots  1
+        callEndpoint @"log"         h1 ()
         void $ Emulator.waitNSlots  1

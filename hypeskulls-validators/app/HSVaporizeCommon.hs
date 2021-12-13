@@ -44,7 +44,7 @@ data ContractInfo = ContractInfo
 
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
-    { ciAdminPKH                = "6ad510fe5e2eff4f367475f01ab79dc4cd1f2600bda02ab270577637"
+    { ciAdminPKH                = "a096d51da85c3eaabe2718be7b59f51291979935ad77b8deb4622fa3"
     , ciPolicy                  = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
     , ciMinUtxoLovelace         = 2_000_000
     , ciPriceTierDelta          = 10
@@ -68,7 +68,7 @@ instance Eq AssetCount where
                                                                 atn == btn &&
                                                                 an  == bn
 
-data VaporizeAction = Vaporize | Deliver
+data VaporizeAction = Vaporize | Deliver | Withdraw
     deriving (Generic, ToJSON, FromJSON)
 
 {-# INLINABLE (|||) #-}
@@ -81,7 +81,7 @@ data VaporizeAction = Vaporize | Deliver
 
 
 PlutusTx.makeIsDataIndexed  ''VaporizeDatum     [('ShadowHSDatum, 0), ('PTDatum, 1)]
-PlutusTx.makeIsDataIndexed  ''VaporizeAction    [('Vaporize, 0), ('Deliver, 1)]
+PlutusTx.makeIsDataIndexed  ''VaporizeAction    [('Vaporize, 0), ('Deliver, 1), ('Withdraw, 2)]
 PlutusTx.makeIsDataIndexed  ''VaporizeListDatum [('VaporizeListDatum, 0)]
 PlutusTx.makeIsDataIndexed  ''ContractInfo      [('ContractInfo, 0)]
 

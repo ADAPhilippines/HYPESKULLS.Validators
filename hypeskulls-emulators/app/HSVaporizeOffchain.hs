@@ -30,7 +30,6 @@ import              GHC.Generics
 
 import              HSVaporizeCommon
 import              HSVaporizeValidator
-import HSVaporizeCommon (VaporizeListDatum(VaporizeListDatum))
 
 
 setupContract :: (AsContractError e) => SetupParams -> Contract w s e ()
@@ -87,18 +86,73 @@ vaporize amt = do
                                             (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
                                             | (_, _, AssetClass (cs, tn)) <- utxos']                                                                        <>
                                     mconcat [Constraints.mustPayToTheScript 
-                                            (ShadowHSDatum (VaporizeListDatum pkh ["MK_EE"])) 
+                                            (ShadowHSDatum (VaporizeListDatum pkh ["MK_EE","SP_C","ADR_E"])) 
                                             (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
                                             | (_, _, AssetClass (cs, tn)) <- utxos]
-            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ "vtr utxos: " P.++ show (P.length utxos')
+            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ "vpt utxos: " P.++ show (P.length utxos')
             ledgerTx <- submitTxConstraintsWith @HSVaporize lookups tx
             awaitTxConfirmed $ txId ledgerTx
-            logInfo @String $ "vaporization order added"
+            logInfo @String $ "Vaporization order added!"
+
+
+
+deliver :: (AsContractError e) => Contract w s e ()
+deliver = do
+    pkh <- pubKeyHash <$> Contract.ownPubKey
+    ownUtxos <- utxosAt $ pubKeyHashAddress pkh
+    shadowHSUtxos <- findScriptUtxos "SH_"
+    case shadowHSUtxos of
+        []      -> logInfo @String "No utxos at script address"
+        utxos   -> do
+            let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
+                vaporizeePKH    =   "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" :: PubKeyHash
+                lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
+                                    Constraints.unspentOutputs ownUtxos                                             <>
+                                    Constraints.otherScript hsVaporizeValidator                                     <>
+                                    Constraints.typedValidatorLookups (hsVaporizeInstance contractInfo)                                  
+                tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Deliver) | (oref, _, _) <- utxos]    <>
+                                    Constraints.mustPayToPubKey vaporizeePKH 
+                                        (Value.singleton (ciPolicy contractInfo) "HYPESKULL0001_MK_EE" 1                          <> 
+                                        Ada.lovelaceValueOf (ciMinUtxoLovelace contractInfo))                                                               <>   
+                                    mconcat [Constraints.mustPayToTheScript 
+                                            (ShadowHSDatum (VaporizeListDatum vaporizeePKH ["SP_C","ADR_E"])) 
+                                            (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
+                                            | (_, _, AssetClass (cs, tn)) <- utxos]
+            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos)
+            ledgerTx <- submitTxConstraintsWith @HSVaporize lookups tx
+            awaitTxConfirmed $ txId ledgerTx
+            logInfo @String $ "Vaporized skull delivered!"
+
+
+withdraw :: (AsContractError e) =>Contract w s e ()
+withdraw = do
+    pkh <- pubKeyHash <$> Contract.ownPubKey
+    ownUtxos <- utxosAt $ pubKeyHashAddress pkh
+    shadowHSUtxos <- findScriptUtxos "SH_"
+    ptUtxos <- findScriptUtxos "VAP"
+    case (shadowHSUtxos, ptUtxos) of
+        ([],[])  -> logInfo @String "No utxos at script address"
+        (utxos, utxos')  -> do
+            let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
+                lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
+                                    Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos'])   <>
+                                    Constraints.unspentOutputs ownUtxos                                             <>
+                                    Constraints.otherScript hsVaporizeValidator                                                        
+                tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Withdraw) | (oref, _, _) <- utxos]   <>
+                                    mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Withdraw) | (oref, _, _) <- utxos']
+                                    
+            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ "vpt utxos: " P.++ show (P.length utxos')
+            ledgerTx <- submitTxConstraintsWith @HSVaporize lookups tx
+            awaitTxConfirmed $ txId ledgerTx
+            logInfo @String $ "Script utxos withdrawn"
+
 
 
 type HSVaporizeSchema =
             Endpoint "setup"    SetupParams
         .\/ Endpoint "vaporize"  Integer
+        .\/ Endpoint "deliver"  ()
+        .\/ Endpoint "withdraw"  ()
         .\/ Endpoint "log"      ()
 
 data SetupParams = SetupParams
@@ -111,8 +165,12 @@ endpoints = forever
     $ awaitPromise
     $   setup'      `select` 
         vaporize'   `select` 
+        deliver'    `select`  
+        withdraw'    `select` 
         log'
   where
     setup'      = endpoint @"setup"     $ \params -> setupContract params
     vaporize'   = endpoint @"vaporize"  $ \params -> vaporize params
+    deliver'    = endpoint @"deliver"   $ const deliver
+    withdraw'   = endpoint @"withdraw"  $ const withdraw
     log'        = endpoint @"log"       $ const logUtxos

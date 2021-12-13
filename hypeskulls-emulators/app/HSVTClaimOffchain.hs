@@ -131,6 +131,7 @@ claim :: (AsContractError e) => Contract w s e ()
 claim = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
+    shadowHSUtxos <- findScriptUtxos "SH_"
     vtrUtxos <- findScriptUtxos "VTR"
     vtUtxos <- findScriptUtxos "HYP"
     case (vtrUtxos, vtUtxos) of
@@ -177,12 +178,39 @@ cheat = do
             logInfo @String $ "funds pwned"
 
 
+withdraw :: (AsContractError e) =>Contract w s e ()
+withdraw = do
+    pkh <- pubKeyHash <$> Contract.ownPubKey
+    ownUtxos <- utxosAt $ pubKeyHashAddress pkh
+    shadowHSUtxos <- findScriptUtxos "SH_"
+    vtrUtxos <- findScriptUtxos "VTR"
+    vtUtxos <- findScriptUtxos "HYP"
+    case (shadowHSUtxos, vtrUtxos, vtUtxos) of
+        ([],[],[])  -> logInfo @String "No utxos at script address"
+        (utxos, utxos', utxos'')  -> do
+            let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
+                lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
+                                    Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos'])   <>
+                                    Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos''])  <>
+                                    Constraints.otherScript hsVTClaimValidator                                                               
+                tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Withdraw) | (oref, _, _) <- utxos]   <>
+                                    mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Withdraw) | (oref, _, _) <- utxos']  <>
+                                    mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Withdraw) | (oref, _, _) <- utxos'']
+                                    
+            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) 
+            logInfo @String $ "vtr utxos: " P.++ show (P.length utxos')
+            logInfo @String $ "vt utxos: " P.++ show (P.length utxos'')
+            ledgerTx <- submitTxConstraintsWith @HSVTClaim lookups tx
+            awaitTxConfirmed $ txId ledgerTx
+            logInfo @String $ "Script utxos withdrawn"
+
+
 type HSVTClaimSchema =
             Endpoint "setup" SetupParams
         .\/ Endpoint "commit" ()
         .\/ Endpoint "claim" ()
         .\/ Endpoint "commitWrongVTR" ()
-        .\/ Endpoint "cheat" ()
+        .\/ Endpoint "withdraw" ()
         .\/ Endpoint "log" ()
 
 data SetupParams = SetupParams
@@ -194,16 +222,16 @@ data SetupParams = SetupParams
 endpoints :: Contract () HSVTClaimSchema Text ()
 endpoints = forever
     $ awaitPromise
-    $   setup'  `select` 
-        commit' `select` 
-        claim' `select` 
-        cheat'  `select` 
-        log'    `select` 
+    $   setup'      `select` 
+        commit'     `select` 
+        claim'      `select` 
+        withdraw'   `select` 
+        log'        `select` 
         cheatVTR'
   where
-    setup' = endpoint @"setup" $ \params -> setupContract params
-    commit' = endpoint @"commit" $ const commit
-    claim' = endpoint @"claim" $ const claim
-    cheatVTR' = endpoint @"commitWrongVTR" $ const commitImproperVTRReturn
-    cheat' = endpoint @"cheat" $ const cheat
-    log' = endpoint @"log" $ const logUtxos
+    setup'      = endpoint @"setup"             $ \params -> setupContract params
+    commit'     = endpoint @"commit"            $ const commit
+    claim'      = endpoint @"claim"             $ const claim
+    cheatVTR'   = endpoint @"commitWrongVTR"    $ const commitImproperVTRReturn
+    withdraw'   = endpoint @"withdraw"          $ const withdraw
+    log'        = endpoint @"log"               $ const logUtxos

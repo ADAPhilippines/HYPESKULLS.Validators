@@ -6,7 +6,6 @@
 module HSVTClaimEmulator
     ( runEmulator
     , hash
-    , test
     ) where
 
 import              PlutusTx.Prelude        as Plutus
@@ -62,7 +61,6 @@ runEmulator = do
     myTrace = do
         h1 <- activateContractWallet (wallet 1) endpoints
         h2 <- activateContractWallet (wallet 2) endpoints
-        h3 <- activateContractWallet (wallet 3) endpoints
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" h1 SetupParams
             { spShadowHSTN  = "SH_HYPESKULL0001"
@@ -92,8 +90,4 @@ hash s = sha2_256 (ciNonce contractInfo `appendByteString` s)
 getDiff :: Eq a => [a] -> [a] -> [a]
 getDiff xs [] = xs
 getDiff [] _ = []
-getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:xs
-
-
-test :: [Integer] -> [Integer] -> [Integer]
-test = getDiff
+getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:getDiff xs ys

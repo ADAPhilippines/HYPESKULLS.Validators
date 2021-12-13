@@ -41,17 +41,22 @@ import              HSVaporizeCommon
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> VaporizeDatum -> VaporizeAction -> ScriptContext -> Bool
-mkValidator ContractInfo{..} datum r ctx = 
+mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (PTDatum _, Vaporize)       ->  traceIfFalse "Vaporization fees not paid"               isFeePaid                   &&&
-                                        traceIfFalse "Vapor_PT token not returned properly"     isMrkrReturnedProperly      &&&
-                                        traceIfFalse "New PT datum invalid"                     isNewPTDatumValid              
+        (PTDatum _, Vaporize)       ->  traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
+                                        traceIfFalse "Vaporization fees not paid"               isFeePaid                           &&&
+                                        traceIfFalse "Vapor_PT token not returned properly"     isMrkrReturnedProperly              &&&
+                                        traceIfFalse "New PT datum invalid"                     isNewPTDatumValid
 
-        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Tx must have two validators"              hasTwoValidatorInput        &&& 
-                                        traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent          &&&
-                                        traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL      &&&
-                                        traceIfFalse "ShadowHS token not returned properly"     isMrkrReturnedProperly      &&&
-                                        traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid    
+        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
+                                        traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL              &&&
+                                        traceIfFalse "ShadowHS token not returned properly"     isMrkrReturnedProperly              &&&
+                                        traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid
+
+        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
+                                        traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid'
+
+        (_, Withdraw)               ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
 
         _                           ->  traceIfFalse "Invalid datum and redeemer pair"          False
         where
@@ -67,33 +72,31 @@ mkValidator ContractInfo{..} datum r ctx =
                 case findOwnInput ctx of
                     Nothing         -> Ada.lovelaceValueOf 1
                     Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
-            
-            mrkrTN :: Maybe TokenName
+
+            mrkrTN :: TokenName
             mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
                 case os of
-                    [(_, tn, _)]    -> Just tn
-                    _               -> Nothing
-            
+                    [(_, tn, _)]    -> tn
+                    _               -> TokenName ""
+
             isFeePaid :: Bool
-            isFeePaid = 
+            isFeePaid =
                 case datum of
-                    PTDatum price   -> price <= Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH)) 
+                    PTDatum price   -> price <= Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH))
                     _               -> False
-            
+
             getContinuingMrkrTxOut :: Maybe TxOut
             getContinuingMrkrTxOut =
-                case mrkrTN of
-                    Nothing -> Nothing
-                    Just tn -> markerOut
-                        where
-                            nftOuts     =   [ o
-                                            | o <- getContinuingOutputs ctx
-                                            , 2 == length (Value.flattenValue (txOutValue o))
-                                            , AssetCount (ciPolicy, tn, 1) `elem` [ AssetCount x | x <- Value.flattenValue (txOutValue o)]
-                                            , Ada.getLovelace (Ada.fromValue(txOutValue o)) == ciMinUtxoLovelace ]
-                            markerOut   = case nftOuts of
-                                [o]     -> Just o
-                                _       -> Nothing
+                case nftOuts of
+                    [o]     -> Just o
+                    _       -> Nothing
+                where
+                    nftOuts     =   [ o
+                                    | o <- getContinuingOutputs ctx
+                                    , 2 == length (Value.flattenValue (txOutValue o))
+                                    , AssetCount (ciPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- Value.flattenValue (txOutValue o)]
+                                    , Ada.getLovelace (Ada.fromValue(txOutValue o)) == ciMinUtxoLovelace ]
+
 
             getDatum :: TxOut -> Maybe Datum
             getDatum o = do
@@ -118,38 +121,57 @@ mkValidator ContractInfo{..} datum r ctx =
             isNewPTDatumValid =
                 case getVaporizeDatum getContinuingMrkrTxOut of
                     Nothing                 -> False
-                    Just (PTDatum newPrice) -> 
+                    Just (PTDatum newPrice) ->
                         case datum of
                             PTDatum price   -> price + 10 == newPrice
-                            _               -> False 
+                            _               -> False
 
             isNewShadowHSDatumValid :: Bool
             isNewShadowHSDatumValid =
                 case getVaporizeDatum getContinuingMrkrTxOut of
                     Nothing                 -> False
-                    Just (ShadowHSDatum (VaporizeListDatum pkh vs)) -> 
+                    Just (ShadowHSDatum (VaporizeListDatum pkh vs)) ->
                         case datum of
-                            ShadowHSDatum (VaporizeListDatum pkh' vs') -> ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig)) &&& (pkh == sig) &&&
+                            ShadowHSDatum (VaporizeListDatum pkh' vs') -> 
+                                ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig))    &&& 
+                                (pkh == sig)                                            &&&
+                                (length vs == length (nub vs))                          &&&
+                                (length vs - length vs' == 1)                           &&&
                                 case getDiff vs vs' of
-                                    [v] ->  1 == assetClassValueOf (valuePaidTo info ciAdminPKH) 
-                                                (AssetClass (ciPolicy, TokenName $ ciVaporTokenName `appendByteString` v))
+                                    [v] ->  1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
+                                                (AssetClass (ciPolicy, TokenName $ ciVaporTokenName P.<> v))
+                                    _   -> False
+                            _   -> False
+
+            isNewShadowHSDatumValid' :: Bool
+            isNewShadowHSDatumValid' =
+                case getVaporizeDatum getContinuingMrkrTxOut of
+                    Nothing                 -> False
+                    Just (ShadowHSDatum (VaporizeListDatum pkh vs)) ->
+                        case datum of
+                            ShadowHSDatum (VaporizeListDatum pkh' vs') -> 
+                                (pkh' == pkh)                      &&&
+                                (length vs == length (nub vs))     &&&
+                                (length vs - length vs' == -1)     &&&
+                                case getDiff vs' vs of
+                                    [v] ->  1 ==  assetClassValueOf (valuePaidTo info vaporizeePKH)
+                                            (AssetClass (ciPolicy, 
+                                                TokenName $ P.sliceByteString 3 13 (unTokenName mrkrTN) P.<> "_" P.<> v))
                                     _   -> False
                             _   -> False
 
             getDiff :: Eq a => [a] -> [a] -> [a]
             getDiff xs [] = xs
             getDiff [] _ = []
-            getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:xs
+            getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:getDiff xs ys
 
             hasMatchingOSHYPESKULL :: Bool
             hasMatchingOSHYPESKULL =
-                case mrkrTN of
-                    Nothing     -> False
-                    Just tn     -> assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
-                        where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName tn
-            
-            hasTwoValidatorInput :: Bool
-            hasTwoValidatorInput =
+                assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
+                    where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName mrkrTN
+
+            hasTwoValidatorInputs :: Bool
+            hasTwoValidatorInputs =
                 let
                     validatorInputs :: [TxInInfo]
                     validatorInputs = filter (isJust . toValidatorHash . txOutAddress . txInInfoResolved) $ txInfoInputs info
@@ -160,7 +182,7 @@ mkValidator ContractInfo{..} datum r ctx =
             hasOnePTTokenSpent =
                 let
                     ptTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                    ptTokenSpent =  [ (cs, tn, n) 
+                    ptTokenSpent =  [ (cs, tn, n)
                                     | (cs, tn, n) <- Value.flattenValue (valueSpent info)
                                     , cs == ciPolicy
                                     , ciPTTokenPrefix == P.sliceByteString 0 3 (unTokenName tn)
@@ -168,8 +190,11 @@ mkValidator ContractInfo{..} datum r ctx =
                 in
                     length ptTokenSpent == 1
 
-            
-            
+            vaporizeePKH :: PubKeyHash
+            vaporizeePKH =
+                case datum of
+                    ShadowHSDatum (VaporizeListDatum pkh _)     -> pkh
+                    _                                           -> PubKeyHash ""
 
 
 

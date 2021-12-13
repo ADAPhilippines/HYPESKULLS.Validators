@@ -33,11 +33,13 @@ import            GHC.Generics
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let nargs = length args
-  let scriptname = "./scripts/" ++ if nargs > 0 then head args else  "result.plutus"
-  putStrLn $ "Writing output to: " ++ scriptname
-  writePlutusScript scriptname hsVaporizeSerialised
+  -- args <- getArgs
+  -- let nargs = length args
+  -- let scriptname = "./scripts/" ++ if nargs > 0 then head args else  "result.plutus"
+  putStrLn $ "Writing output to: " ++ "./scripts/HSVTClaim.plutus"
+  writePlutusScript "./scripts/HSVTClaim.plutus" hsVTClaimSerialised
+  putStrLn $ "Writing output to: " ++ "./scripts/HSVaporize.plutus"
+  writePlutusScript "./scripts/HSVaporize.plutus" hsVaporizeSerialised
 
 
 writePlutusScript :: FilePath -> PlutusScript PlutusScriptV1 -> IO ()

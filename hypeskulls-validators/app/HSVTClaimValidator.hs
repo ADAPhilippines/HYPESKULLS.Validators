@@ -61,6 +61,9 @@ mkValidator ContractInfo{..} datum r ctx =
 
         (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMarkerValid ciVTPrefix)          &&&
                                             traceIfFalse "Not allowed to claim VT"                  canClaimVT
+        
+
+        (_, Withdraw)                   ->  traceIfFalse "Tx Not signed by Admin"                  (txSignedBy info ciAdminPKH)
 
         _                               ->  traceIfFalse "Unsupported datum and redeemer pair"      False
 
@@ -174,7 +177,7 @@ mkValidator ContractInfo{..} datum r ctx =
                 VTDatum hash -> mbTN
                     where
                         hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valueSpent info), cs == ciPolicy]
-                        matchingVTR = filter (\(_,tn,_) -> hash == sha2_256 (ciNonce `appendByteString` unTokenName tn)) hypeNFTsSpent
+                        matchingVTR = filter (\(_,tn,_) -> hash == sha2_256 (ciNonce P.<> unTokenName tn)) hypeNFTsSpent
                         mbTN =
                             case matchingVTR of
                                 [(_,tn',_)] -> Just tn'
