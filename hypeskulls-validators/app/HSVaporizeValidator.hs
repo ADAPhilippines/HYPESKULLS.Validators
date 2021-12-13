@@ -43,17 +43,20 @@ import              HSVaporizeCommon
 mkValidator :: ContractInfo -> VaporizeDatum -> VaporizeAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (PTDatum _, Vaporize)       ->  traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
+        (PTDatum _, Vaporize)       ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciPTTokenPrefix)       &&&
+                                        traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
                                         traceIfFalse "Vaporization fees not paid"               isFeePaid                           &&&
                                         traceIfFalse "Vapor_PT token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New PT datum invalid"                     isNewPTDatumValid
 
-        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
+        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciShadowHSPrefix)      &&&
+                                        traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
                                         traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL              &&&
                                         traceIfFalse "ShadowHS token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid
 
-        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
+        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciShadowHSPrefix)      &&&
+                                        traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid'
 
         (_, Withdraw)               ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
@@ -78,11 +81,14 @@ mkValidator ContractInfo{..} datum r ctx =
                 case os of
                     [(_, tn, _)]    -> tn
                     _               -> TokenName ""
+            
+            isMrkrValid :: BuiltinByteString -> Bool
+            isMrkrValid bs = bs == P.sliceByteString 0 3 (unTokenName mrkrTN)
 
             isFeePaid :: Bool
             isFeePaid =
                 case datum of
-                    PTDatum price   -> price <= Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH))
+                    PTDatum price   -> 1_000_000 * price <= Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH))
                     _               -> False
 
             getContinuingMrkrTxOut :: Maybe TxOut

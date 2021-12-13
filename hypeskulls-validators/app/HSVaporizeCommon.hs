@@ -40,6 +40,7 @@ data ContractInfo = ContractInfo
     , ciDefaultShadowHSOwner    :: !PubKeyHash
     , ciVaporTokenName          :: !BuiltinByteString 
     , ciPTTokenPrefix           :: !BuiltinByteString 
+    , ciShadowHSPrefix      :: !BuiltinByteString
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -51,6 +52,7 @@ contractInfo = ContractInfo
     , ciDefaultShadowHSOwner    = ""
     , ciVaporTokenName          = "HYPESKULLS_VT_"
     , ciPTTokenPrefix           = "VAP"
+    , ciShadowHSPrefix          = "SH_"
     }
 
 data VaporizeListDatum = VaporizeListDatum

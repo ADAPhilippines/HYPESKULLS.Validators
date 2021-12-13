@@ -65,9 +65,7 @@ runEmulator = do
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         h1 ()
         void $ Emulator.waitNSlots  1
-        callEndpoint @"vaporize"    h2 70
-        void $ Emulator.waitNSlots  1
-        callEndpoint @"deliver"     h1 ()
+        callEndpoint @"withdraw"    h1 ()
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         h1 ()
         void $ Emulator.waitNSlots  1

@@ -75,6 +75,8 @@ commit = do
         ([],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos')  -> do
             let newDatum        =   VTRDatum pkh
+                hsPolicy        =   ciPolicy contractInfo
+                hsrtn           =   ciHSResurrectionTN contractInfo
                 minUtxoLovelace =   ciMinUtxoLovelace contractInfo
                 lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
                                     Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos'])   <>
@@ -83,16 +85,16 @@ commit = do
                                     Constraints.typedValidatorLookups (hsVTClaimInstance contractInfo)
                 tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData CommitSkull) | (oref, _, _) <- utxos]        <>
                                     mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData CommitRandom) | (oref, _, _) <- utxos']      <>
-                                    Constraints.mustPayToPubKey pkh (   Value.singleton (ciPolicy contractInfo) "HYPESKULL0001" 1)                                  <>
-                                    Constraints.mustPayToPubKey pkh (   Value.singleton (ciPolicy contractInfo) "HYPESKULL0002" 1)                                  <>
                                     Constraints.mustPayToPubKey 
                                             (ciAdminPKH contractInfo) 
-                                            (mconcat[Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace | (_, _, AssetClass (cs, tn)) <- utxos])              <>
+                                            (mconcat[   Value.singleton cs tn 1            <>
+                                                        Value.singleton hsPolicy hsrtn 1   <>
+                                                        Ada.lovelaceValueOf minUtxoLovelace | (_, _, AssetClass (cs, tn)) <- utxos])              <>
                                     mconcat [Constraints.mustPayToTheScript 
                                             newDatum 
                                             (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
                                             | (_, _, AssetClass (cs, tn)) <- utxos']
-            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ "vtr utxos: " P.++ show (P.length utxos')
+            logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ " vtr utxos: " P.++ show (P.length utxos')
             ledgerTx <- submitTxConstraintsWith @HSVTClaim lookups tx
             awaitTxConfirmed $ txId ledgerTx
             logInfo @String $ "skull commit successful"
@@ -131,7 +133,6 @@ claim :: (AsContractError e) => Contract w s e ()
 claim = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    shadowHSUtxos <- findScriptUtxos "SH_"
     vtrUtxos <- findScriptUtxos "VTR"
     vtUtxos <- findScriptUtxos "HYP"
     case (vtrUtxos, vtUtxos) of
@@ -145,10 +146,13 @@ claim = do
                                 Constraints.unspentOutputs ownUtxos                                             <>
                                 Constraints.otherScript hsVTClaimValidator
                 tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData ClaimVT) | (oref, _, _) <- utxos']   <>
-                                mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData UseRandom) | (oref, _, _) <- utxos]  <>   
-                                Constraints.mustPayToPubKey 
+                                    mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData UseRandom) | (oref, _, _) <- utxos]  <>   
+                                    Constraints.mustPayToPubKey 
                                         (ciAdminPKH contractInfo) 
-                                        (mconcat[Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace | (_, _, AssetClass (cs, tn)) <- utxos])
+                                        (mconcat[Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace | (_, _, AssetClass (cs, tn)) <- utxos])    <>
+                                    Constraints.mustPayToPubKey 
+                                        (ciAdminPKH contractInfo) 
+                                        (mconcat[Ada.lovelaceValueOf minUtxoLovelace | (_, _, _) <- utxos'])
             logInfo @String $ "found vtr utxos: " P.++ show (P.length utxos)
             logInfo @String $ "found vt utxos: " P.++ show (P.length utxos')
             ledgerTx <- submitTxConstraintsWith @HSVTClaim lookups tx
@@ -181,15 +185,13 @@ cheat = do
 withdraw :: (AsContractError e) =>Contract w s e ()
 withdraw = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
-    ownUtxos <- utxosAt $ pubKeyHashAddress pkh
     shadowHSUtxos <- findScriptUtxos "SH_"
     vtrUtxos <- findScriptUtxos "VTR"
     vtUtxos <- findScriptUtxos "HYP"
     case (shadowHSUtxos, vtrUtxos, vtUtxos) of
         ([],[],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos', utxos'')  -> do
-            let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
-                lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
+            let lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos])    <>
                                     Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos'])   <>
                                     Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos''])  <>
                                     Constraints.otherScript hsVTClaimValidator                                                               

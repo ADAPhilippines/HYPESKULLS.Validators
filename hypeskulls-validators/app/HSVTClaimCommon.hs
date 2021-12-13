@@ -39,6 +39,7 @@ data ContractInfo = ContractInfo
     , ciShadowHSPrefix      :: !BuiltinByteString
     , ciVTRandPrefix        :: !BuiltinByteString
     , ciVTPrefix            :: !BuiltinByteString
+    , ciHSResurrectionTN    :: !TokenName
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -51,6 +52,7 @@ contractInfo = ContractInfo
     , ciVTRandPrefix        = "VTR"
     , ciVTPrefix            = "HYP"
     , ciNonce               = "testnonce"
+    , ciHSResurrectionTN    = "HYPESKULLSRESURRECTION"
     }
 
 data VTClaimDatum = ShadowHSDatum | VTRDatum PubKeyHash | VTDatum BuiltinByteString
