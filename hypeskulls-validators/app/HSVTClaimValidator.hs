@@ -37,6 +37,7 @@ import              PlutusTx.Prelude        hiding (Semigroup (..), unless)
 import              Cardano.Api             ( PlutusScriptV1 )
 import qualified    Plutus.V1.Ledger.Ada    as Ada
 import              HSVTClaimCommon
+import Plutus.V1.Ledger.Ada (adaSymbol)
 
 
 {-# INLINABLE mkValidator #-}
@@ -60,7 +61,7 @@ mkValidator ContractInfo{..} datum r ctx =
                                             traceIfFalse "VTR Token not disposed"                   isMarkerNFTDisposed                             &&&
                                             traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned totalNFTsUsed)
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVTPrefix)                      &&&
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVTPrefix)                        &&&
                                             traceIfFalse "Not allowed to claim VT"                  canClaimVT
 
 
@@ -70,7 +71,7 @@ mkValidator ContractInfo{..} datum r ctx =
 
     where
         info :: TxInfo
-        info = scriptContextTxInfo ctx
+        !info = scriptContextTxInfo ctx
 
         sig :: PubKeyHash
         sig = case txInfoSignatories info of
@@ -82,30 +83,21 @@ mkValidator ContractInfo{..} datum r ctx =
                 Nothing         -> Ada.lovelaceValueOf 1
                 Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
 
-        mrkrTN :: Maybe TokenName
-        !mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
+        mrkrTN :: TokenName
+        mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
                 case os of
-                    [(_, tn, _)]    -> Just tn
-                    _               -> Nothing
+                    [(_, tn, _)]    -> tn
+                    _               -> TokenName ""
 
         isMrkrValid :: BuiltinByteString -> Bool
-        isMrkrValid bs =
-            case mrkrTN of
-                Nothing     -> False
-                Just tn     -> bs == P.sliceByteString 0 3 (unTokenName tn)
+        isMrkrValid bs = bs == P.sliceByteString 0 3 (unTokenName mrkrTN)
 
         hasMatchingOSHYPESKULL :: Bool
-        hasMatchingOSHYPESKULL =
-            case mrkrTN of
-                Nothing     -> False
-                Just tn     -> assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
-                    where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName tn
+        hasMatchingOSHYPESKULL = assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
+                    where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName mrkrTN
 
         isMarkerNFTDisposed :: Bool
-        isMarkerNFTDisposed =
-            case mrkrTN of
-                Nothing     -> False
-                Just tn     -> assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy,tn)) == 1
+        isMarkerNFTDisposed = assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy, mrkrTN)) == 1
 
         totalNFTsReturned :: Integer
         totalNFTsReturned = length  [   (cs, tn, n) 
@@ -133,19 +125,21 @@ mkValidator ContractInfo{..} datum r ctx =
                 _               -> False
 
         getContinuingMarkerTxOut :: Maybe TxOut
-        getContinuingMarkerTxOut =
-            case mrkrTN of
-                Nothing -> Nothing
-                Just tn -> markerOut
-                    where
-                        nftOuts     =   [ o
-                                        | o <- getContinuingOutputs ctx
-                                        , 2 == length (Value.flattenValue (txOutValue o))
-                                        , AssetCount (ciPolicy, tn, 1) `elem` [ AssetCount x | x <- Value.flattenValue (txOutValue o)]
-                                        , Ada.getLovelace (Ada.fromValue(txOutValue o)) == ciMinUtxoLovelace]
-                        markerOut   = case nftOuts of
-                            [o]     -> Just o
-                            _       -> Nothing
+        getContinuingMarkerTxOut = 
+            case nftOuts of
+                [o]     -> Just o
+                _       -> Nothing
+                where
+                    nftOuts     =   [ o
+                                    | o <- getContinuingOutputs ctx
+                                    ,   let !outVal = txOutValue o 
+                                            !flatVal = Value.flattenValue outVal
+                                        in 
+                                        (2 == length flatVal) &&&
+                                        (AssetCount (ciPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- flatVal]) &&&
+                                        (AssetCount (adaSymbol, Ada.adaToken, ciMinUtxoLovelace) `elem` [ AssetCount x | x <- flatVal])
+                                    ]
+                        
 
         isVTRReturnedProperly :: Bool
         isVTRReturnedProperly =
@@ -195,7 +189,7 @@ mkValidator ContractInfo{..} datum r ctx =
                 VTDatum hash -> mbTN
                     where
                         hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valueSpent info), cs == ciPolicy]
-                        matchingVTR = filter (\(_,tn,_) -> hash == sha2_256 (ciNonce P.<> unTokenName tn)) hypeNFTsSpent
+                        matchingVTR = filter (\(_,tn,_) -> hash == sha2_256 (unTokenName tn P.<> "_" P.<> ciNonce)) hypeNFTsSpent
                         mbTN =
                             case matchingVTR of
                                 [(_,tn',_)] -> Just tn'

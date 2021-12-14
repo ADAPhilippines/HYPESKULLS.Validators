@@ -56,8 +56,9 @@ contractInfo = ContractInfo
     }
 
 data VaporizeListDatum = VaporizeListDatum
-    { vldPKH    :: !PubKeyHash
-    , vldList   :: ![BuiltinByteString]
+    { vldPKH        :: !PubKeyHash
+    , vldAddress    :: !BuiltinByteString
+    , vldList       :: ![BuiltinByteString]
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 data VaporizeDatum = ShadowHSDatum VaporizeListDatum | PTDatum Integer

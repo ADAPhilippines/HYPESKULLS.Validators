@@ -29,6 +29,8 @@ import              HSVaporizeCommon
 sHSCS :: CurrencySymbol
 sHSCS = HSVTClaimCommon.ciPolicy HSVTClaimCommon.contractInfo
 
+nonce :: BuiltinByteString
+nonce = ciNonce HSVTClaimCommon.contractInfo  
 
 wallet :: Integer -> Wallet
 wallet = fromWalletNumber . WalletNumber
@@ -75,9 +77,9 @@ runEmulator = do
             , spVTRs        =   [ ("VTR_HS_0001", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 , ("VTR_HS_0002", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0001"))
-                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0002"))
-                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0002"))
+            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VTR_HS_0001" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VTR_HS_0002" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VTR_HS_0002" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1
@@ -86,8 +88,8 @@ runEmulator = do
             , spVTRs        =   [ ("VTR_HS_0003", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 , ("VTR_HS_0004", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_A_C", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0003"))
-                                , ("HYPESKULLS_VT_Z_E", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0004"))
+            , spVTs         =   [ ("HYPESKULLS_VT_A_C", VTDatum $ sha2_256 ("VTR_HS_0003" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_Z_E", VTDatum $ sha2_256 ("VTR_HS_0004" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1
@@ -133,7 +135,7 @@ runE2EEmulator = do
     v3 :: Value
     v3 =    Ada.lovelaceValueOf 500_000_000                         <>
             Value.singleton sHSCS "HYPESKULL0001"           1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1                          
+            Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1                  
 
     myTrace :: EmulatorTrace ()
     myTrace = do
@@ -147,9 +149,9 @@ runE2EEmulator = do
             , spVTRs        =   [ ("VTR_HS_0057", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 , ("VTR_HS_1072", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_0057"))
-                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_1072"))
-                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 (ciNonce HSVTClaimCommon.contractInfo <> "VTR_HS_1072"))
+            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VTR_HS_0057" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VTR_HS_1072" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VTR_HS_1072" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1
@@ -164,7 +166,7 @@ runE2EEmulator = do
         callEndpoint @"log"     hVTClaim1 ()
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup"   hVaporize1 Vaporize.SetupParams
-            { spShadowHSTNs     =   [ ("SH_HYPESKULL0001", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "" [])) ]
+            { spShadowHSTNs     =   [ ("SH_HYPESKULL0001", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "" "" [])) ]
             , spPriceTierTNs    =   [ ("VAPOR_PT_050", PTDatum 70) ]
             }
         void $ Emulator.waitNSlots  1
@@ -172,24 +174,24 @@ runE2EEmulator = do
         void $ Emulator.waitNSlots  1
         callEndpoint @"vaporize"    hVaporize2 VaporizeParams
             { vpPrice               = 70
-            , vpVTToken             = ("HYPESKULLS_VT_MK_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" ["MK_EE"]))
+            , vpVTToken             = ("HYPESKULLS_VT_MK_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" "abcd" ["MK_EE"]))
             }
         void $ Emulator.waitNSlots  1
         callEndpoint @"vaporize"    hVaporize2 VaporizeParams
             { vpPrice               = 80
-            , vpVTToken             = ("HYPESKULLS_VT_SP_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" ["SP_EE","MK_EE"]))
+            , vpVTToken             = ("HYPESKULLS_VT_SP_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" "abcd"["SP_EE","MK_EE"]))
             }
         void $ Emulator.waitNSlots  1
         callEndpoint @"deliver"     hVaporize1 DeliverParams
             { dpVaporizeePKH        = "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd"
-            , dpVaporizedSkull      = ("HYPESKULL0001_MK_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" ["SP_EE","MK_EE"]))
+            , dpVaporizedSkull      = ("HYPESKULL0001_MK_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" "abcd" ["SP_EE","MK_EE"]))
             }
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         hVaporize1 ()
         void $ Emulator.waitNSlots  1
         callEndpoint @"deliver"     hVaporize1 DeliverParams
             { dpVaporizeePKH        = "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd"
-            , dpVaporizedSkull      = ("HYPESKULL0001_SP_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" ["SP_EE","MK_EE"]))
+            , dpVaporizedSkull      = ("HYPESKULL0001_SP_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" "abcd" ["SP_EE","MK_EE"]))
             }
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         hVaporize1 ()

@@ -21,6 +21,7 @@ import qualified  PlutusTx.Prelude as P
 import qualified  PlutusTx
 import qualified  Data.ByteString.Short as SBS
 import            HSVTClaimCommon
+import            HSVaporizeCommon
 import            HSVTClaimValidator
 import            HSVaporizeValidator
 import            Data.String (IsString(fromString))
@@ -33,26 +34,50 @@ import            GHC.Generics
 
 main :: IO ()
 main = do
-  -- args <- getArgs
-  -- let nargs = length args
-  -- let scriptname = "./scripts/" ++ if nargs > 0 then head args else  "result.plutus"
-  putStrLn $ "Writing output to: " ++ "./scripts/HSVTClaim.plutus"
-  writePlutusScript "./scripts/HSVTClaim.plutus" hsVTClaimSerialised
-  putStrLn $ "Writing output to: " ++ "./scripts/HSVaporize.plutus"
-  writePlutusScript "./scripts/HSVaporize.plutus" hsVaporizeSerialised
+  writeHSVTClaimScript
+  writeHSVaporizeScript
 
 
-writePlutusScript :: FilePath -> PlutusScript PlutusScriptV1 -> IO ()
-writePlutusScript filename scriptSerial =
+writeHSVTClaimScript :: IO()
+writeHSVTClaimScript = 
   do
-  let shadowHSDatum = ShadowHSDatum
-      vtrDatum = VTRDatum "abcd"
-      vtDatum = VTDatum "abcd"
-  print $ "ShadowHSDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData shadowHSDatum))
-  print $ "VTRDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData vtrDatum))
-  print $ "VTDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData vtDatum))
-  print $ "Redeemer value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData ()))
-  result <- writeFileTextEnvelope filename Nothing scriptSerial
+
+  putStrLn "HSVTClaim Datums:"
+  print $ "ShadowHSDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVTClaimCommon.ShadowHSDatum))
+  print $ "VTRDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTRDatum "abcd"))
+  print $ "VTDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTDatum "abcd"))
+  
+  putStrLn "HSVTClaim Actions:"
+  print $ "CommitSkull: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData CommitSkull))
+  print $ "CommitRandom: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData CommitRandom))
+  print $ "UseRandom: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData UseRandom))
+  print $ "ClaimVT: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData ClaimVT))
+  print $ "Withdraw: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVTClaimCommon.Withdraw))
+
+  putStrLn $ "Writing output to: " ++ "./scripts/HSVTClaim.plutus"
+  result <- writeFileTextEnvelope "./scripts/HSVTClaim.plutus" Nothing hsVTClaimSerialised
+  case result of
+    Left err -> print $ displayError err
+    Right () -> return ()
+
+writeHSVaporizeScript :: IO()
+writeHSVaporizeScript = 
+  do
+  putStrLn "HSVaporize Datums:"
+  print $ "ShadowHSDatum value: " 
+    <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
+    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "abcd" "abcd" ["SP_C"])))
+  print $ "PTDatum value: " 
+    <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
+    $ fromPlutusData (PlutusTx.toData $ PTDatum 70))
+  
+  putStrLn "HSVaporize Actions:"
+  print $ "Vaporize: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData Vaporize))
+  print $ "Deliver: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData Deliver))
+  print $ "Withdraw: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVaporizeCommon.Withdraw))
+
+  putStrLn $ "Writing output to: " ++ "./scripts/HSVaporize.plutus"
+  result <- writeFileTextEnvelope "./scripts/HSVaporize.plutus" Nothing hsVaporizeSerialised
   case result of
     Left err -> print $ displayError err
     Right () -> return ()

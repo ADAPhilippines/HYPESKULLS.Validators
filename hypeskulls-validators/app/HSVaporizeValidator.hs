@@ -136,9 +136,10 @@ mkValidator ContractInfo{..} datum r ctx =
             isNewShadowHSDatumValid =
                 case getVaporizeDatum getContinuingMrkrTxOut of
                     Nothing                 -> False
-                    Just (ShadowHSDatum (VaporizeListDatum pkh vs)) ->
+                    Just (ShadowHSDatum (VaporizeListDatum pkh addr vs)) ->
                         case datum of
-                            ShadowHSDatum (VaporizeListDatum pkh' vs') -> 
+                            ShadowHSDatum (VaporizeListDatum pkh' addr' vs') -> 
+                                ((addr' == "") ||| (addr' == addr))                     &&& 
                                 ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig))    &&& 
                                 (pkh == sig)                                            &&&
                                 (length vs == length (nub vs))                          &&&
@@ -153,17 +154,12 @@ mkValidator ContractInfo{..} datum r ctx =
             isNewShadowHSDatumValid' =
                 case getVaporizeDatum getContinuingMrkrTxOut of
                     Nothing                 -> False
-                    Just (ShadowHSDatum (VaporizeListDatum pkh vs)) ->
+                    Just (ShadowHSDatum (VaporizeListDatum pkh addr vs)) ->
                         case datum of
-                            ShadowHSDatum (VaporizeListDatum pkh' vs') -> 
-                                (pkh' == pkh)                      &&&
-                                (length vs == length (nub vs))     &&&
-                                (length vs - length vs' == -1)     &&&
-                                case getDiff vs' vs of
-                                    [v] ->  1 ==  assetClassValueOf (valuePaidTo info vaporizeePKH)
-                                            (AssetClass (ciPolicy, 
-                                                TokenName $ P.sliceByteString 3 13 (unTokenName mrkrTN) P.<> "_" P.<> v))
-                                    _   -> False
+                            ShadowHSDatum (VaporizeListDatum pkh' addr' vs') -> 
+                                (addr' == addr) &&&
+                                (pkh' == pkh)   &&&
+                                (vs == vs')
                             _   -> False
 
             getDiff :: Eq a => [a] -> [a] -> [a]
@@ -199,8 +195,8 @@ mkValidator ContractInfo{..} datum r ctx =
             vaporizeePKH :: PubKeyHash
             vaporizeePKH =
                 case datum of
-                    ShadowHSDatum (VaporizeListDatum pkh _)     -> pkh
-                    _                                           -> PubKeyHash ""
+                    ShadowHSDatum (VaporizeListDatum pkh _ _)       -> pkh
+                    _                                               -> PubKeyHash ""
 
 
 
