@@ -41,7 +41,6 @@ main = do
 writeHSVTClaimScript :: IO()
 writeHSVTClaimScript = 
   do
-
   putStrLn "HSVTClaim Datums:"
   print $ "ShadowHSDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVTClaimCommon.ShadowHSDatum))
   print $ "VTRDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTRDatum "abcd"))
@@ -66,7 +65,7 @@ writeHSVaporizeScript =
   putStrLn "HSVaporize Datums:"
   print $ "ShadowHSDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
-    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "abcd" "abcd" ["SP_C"])))
+    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "abcd" ["MK_EE"] ["SP_C"])))
   print $ "PTDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
     $ fromPlutusData (PlutusTx.toData $ PTDatum 70))

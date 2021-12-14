@@ -87,7 +87,7 @@ mkValidator ContractInfo{..} datum r ctx =
         mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
                 case os of
                     [(_, tn, _)]    -> tn
-                    _               -> TokenName ""
+                    _               -> TokenName emptyByteString
 
         isMrkrValid :: BuiltinByteString -> Bool
         isMrkrValid bs = bs == P.sliceByteString 0 3 (unTokenName mrkrTN)
