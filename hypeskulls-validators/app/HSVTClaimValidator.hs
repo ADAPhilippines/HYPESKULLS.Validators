@@ -62,8 +62,7 @@ mkValidator ContractInfo{..} datum r ctx =
                                             traceIfFalse "VRT Token not disposed"                   isMarkerNFTDisposed                                 &&&
                                             traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned totalNFTsUsed)
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVTAffix)                           &&&
-                                            traceIfFalse "Not allowed to claim VT"                  canClaimVT                    
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Not allowed to claim VT"                  canClaimVT                    
 
         (_, Withdraw)                   ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
 
