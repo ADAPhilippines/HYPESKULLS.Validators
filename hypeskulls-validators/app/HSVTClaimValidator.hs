@@ -60,9 +60,10 @@ mkValidator ContractInfo{..} datum r ctx =
         (VRTDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVRTAffix)                          &&&
                                             traceIfFalse "Spender not allowed"                      isVRTSpendingAllowed                                &&&
                                             traceIfFalse "VRT Token not disposed"                   isMarkerNFTDisposed                                 &&&
-                                            traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned totalNFTsUsed)
+                                            traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned 2)
 
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Not allowed to claim VT"                  canClaimVT                    
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Not allowed to claim VT"                  canClaimVT                                          &&&
+                                            traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs                               
 
         (_, Withdraw)                   ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
 
@@ -97,20 +98,6 @@ mkValidator ContractInfo{..} datum r ctx =
 
         isMarkerNFTDisposed :: Bool
         isMarkerNFTDisposed = assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy, mrkrTN)) == 1
-
-        totalNFTsUsed :: Integer
-        totalNFTsUsed = length      [   (cs, tn, n) 
-                                    |   (cs, tn, n) <- Value.flattenValue (valueSpent info)
-                                    ,   let
-                                            lenVRTAffix     = lengthOfByteString ciVRTAffix
-                                            lenShadowAffix  = lengthOfByteString ciShadowHSAffix
-                                            lenVTAffix  = lengthOfByteString ciVTAffix
-                                        in
-                                        (cs == ciPolicy)                                                            &&&
-                                        ((ciVRTAffix == P.sliceByteString 0 lenVRTAffix (unTokenName tn))           |||
-                                        (ciShadowHSAffix == P.sliceByteString 13 lenShadowAffix (unTokenName tn))   |||
-                                        (ciVTAffix == P.sliceByteString 0 lenVTAffix (unTokenName tn)))
-                                    ]
 
         isMinUtxoLovelaceReturned :: Integer -> Bool
         isMinUtxoLovelaceReturned n = n * ciMinUtxoLovelace <= Ada.getLovelace (Ada.fromValue $ valuePaidTo info ciAdminPKH)
