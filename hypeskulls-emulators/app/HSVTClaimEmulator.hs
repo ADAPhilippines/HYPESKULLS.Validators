@@ -49,13 +49,13 @@ runEmulator = do
     v1 =    defLovelace                                             <>
             Value.singleton sHSCS "SH_HYPESKULL0001"        1       <>
             Value.singleton sHSCS "SH_HYPESKULL0002"        1       <>
-            Value.singleton sHSCS "VTR_HS_0001"             1       <>
-            Value.singleton sHSCS "VTR_HS_0002"             1       <>
+            Value.singleton sHSCS "VRT_HS_0001"             1       <>
+            Value.singleton sHSCS "VRT_HS_0002"             1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"     1       <>
-            Value.singleton sHSCS "VTR_HS_0003"             1       <>
-            Value.singleton sHSCS "VTR_HS_0004"             1       <>
-            Value.singleton sHSCS "VTR_HS_0005"             1       <>
+            Value.singleton sHSCS "VRT_HS_0003"             1       <>
+            Value.singleton sHSCS "VRT_HS_0004"             1       <>
+            Value.singleton sHSCS "VRT_HS_0005"             1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_A_C"       1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_Z_E"       1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_Z_C"       1       <>
@@ -71,32 +71,35 @@ runEmulator = do
     myTrace = do
         h1 <- activateContractWallet (wallet 1) VTClaim.endpoints
         h2 <- activateContractWallet (wallet 2) VTClaim.endpoints
+        h3 <- activateContractWallet (wallet 3) VTClaim.endpoints
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" h1 VTClaim.SetupParams
             { spShadowHSTN  = "SH_HYPESKULL0001"
-            , spVTRs        =   [ ("VTR_HS_0001", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
-                                , ("VTR_HS_0002", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
+            , spVRTs        =   [ ("VRT_HS_0001", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
+                                , ("VRT_HS_0002", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VTR_HS_0001" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VTR_HS_0002" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VTR_HS_0002" <> "_" <> nonce))
+            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VRT_HS_0001" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VRT_HS_0002" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VRT_HS_0002" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" h1 VTClaim.SetupParams
             { spShadowHSTN  = "SH_HYPESKULL0002"
-            , spVTRs        =   [ ("VTR_HS_0003", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
-                                , ("VTR_HS_0004", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
+            , spVRTs        =   [ ("VRT_HS_0003", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
+                                , ("VRT_HS_0004", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_A_C", VTDatum $ sha2_256 ("VTR_HS_0003" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_Z_E", VTDatum $ sha2_256 ("VTR_HS_0004" <> "_" <> nonce))
+            , spVTs         =   [ ("HYPESKULLS_VT_A_C", VTDatum $ sha2_256 ("VRT_HS_0003" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_Z_E", VTDatum $ sha2_256 ("VRT_HS_0004" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
         callEndpoint @"commit" h2 ()
-        void $ Emulator.waitNSlots 3
+        void $ Emulator.waitNSlots 1
+        callEndpoint @"prove" h2 ()
+        void $ Emulator.waitNSlots 1
         callEndpoint @"log" h1 ()
         void $ Emulator.waitNSlots 1
         callEndpoint @"claim" h2 ()
@@ -118,8 +121,8 @@ runE2EEmulator = do
     v1 :: Value
     v1 =    defLovelace                                             <>
             Value.singleton sHSCS "SH_HYPESKULL0001"        1       <>
-            Value.singleton sHSCS "VTR_HS_0057"             1       <>
-            Value.singleton sHSCS "VTR_HS_1072"             1       <>
+            Value.singleton sHSCS "VRT_HS_0057"             1       <>
+            Value.singleton sHSCS "VRT_HS_1072"             1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"     1       <>
             Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS"   1       <>
@@ -146,12 +149,12 @@ runE2EEmulator = do
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" hVTClaim1 VTClaim.SetupParams
             { spShadowHSTN  = "SH_HYPESKULL0001"
-            , spVTRs        =   [ ("VTR_HS_0057", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
-                                , ("VTR_HS_1072", VTRDatum (ciDefaultVTRandOwner HSVTClaimCommon.contractInfo))
+            , spVRTs        =   [ ("VRT_HS_0057", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
+                                , ("VRT_HS_1072", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))
                                 ]
-            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VTR_HS_0057" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VTR_HS_1072" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VTR_HS_1072" <> "_" <> nonce))
+            , spVTs         =   [ ("HYPESKULLS_VT_SP_EE", VTDatum $ sha2_256 ("VRT_HS_0057" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_MK_EE", VTDatum $ sha2_256 ("VRT_HS_1072" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_NUGGETS", VTDatum $ sha2_256 ("VRT_HS_1072" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1

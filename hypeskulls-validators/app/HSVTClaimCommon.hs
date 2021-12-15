@@ -34,12 +34,11 @@ data ContractInfo = ContractInfo
     { ciAdminPKH            :: !PubKeyHash
     , ciPolicy              :: !CurrencySymbol
     , ciMinUtxoLovelace     :: !Integer
-    , ciDefaultVTRandOwner  :: !PubKeyHash
+    , ciDefaultVRTOwner     :: !PubKeyHash
     , ciNonce               :: !BuiltinByteString
     , ciShadowHSPrefix      :: !BuiltinByteString
-    , ciVTRandPrefix        :: !BuiltinByteString
+    , ciVRTPrefix           :: !BuiltinByteString
     , ciVTPrefix            :: !BuiltinByteString
-    , ciHSResurrectionTN    :: !TokenName
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -47,15 +46,14 @@ contractInfo = ContractInfo
     { ciAdminPKH            = "a096d51da85c3eaabe2718be7b59f51291979935ad77b8deb4622fa3"
     , ciPolicy              = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
     , ciMinUtxoLovelace     = 2_000_000
-    , ciDefaultVTRandOwner  = ""
+    , ciDefaultVRTOwner     = ""
     , ciShadowHSPrefix      = "SH_"
-    , ciVTRandPrefix        = "VTR"
+    , ciVRTPrefix           = "VRT"
     , ciVTPrefix            = "HYP"
     , ciNonce               = "testnonce"
-    , ciHSResurrectionTN    = "HYPESKULLSRESURRECTION"
     }
 
-data VTClaimDatum = ShadowHSDatum | VTRDatum PubKeyHash | VTDatum BuiltinByteString
+data VTClaimDatum = ShadowHSDatum | VRTDatum PubKeyHash | VTDatum BuiltinByteString
     deriving (Generic, ToJSON, FromJSON)
 
 newtype AssetCount = AssetCount (CurrencySymbol, TokenName, Integer)
@@ -65,7 +63,7 @@ instance Eq AssetCount where
                                                                 atn == btn &&
                                                                 an  == bn
 
-data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ClaimVT | Withdraw
+data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ProveOwner | ClaimVT | Withdraw
     deriving (Generic, ToJSON, FromJSON)
 
 {-# INLINABLE (|||) #-}
@@ -76,8 +74,8 @@ data VTClaimAction = CommitSkull | CommitRandom | UseRandom | ClaimVT | Withdraw
 (&&&) :: Bool -> Bool -> Bool
 (&&&) x y = if x then y else False
 
-PlutusTx.makeIsDataIndexed  ''VTClaimDatum      [('ShadowHSDatum, 0), ('VTRDatum, 1), ('VTDatum, 2)]
-PlutusTx.makeIsDataIndexed  ''VTClaimAction     [('CommitSkull, 0), ('CommitRandom, 1), ('UseRandom, 2), ('ClaimVT, 3), ('Withdraw, 4)]
+PlutusTx.makeIsDataIndexed  ''VTClaimDatum      [('ShadowHSDatum, 0), ('VRTDatum, 1), ('VTDatum, 2)]
+PlutusTx.makeIsDataIndexed  ''VTClaimAction     [('CommitSkull, 0), ('CommitRandom, 1), ('UseRandom, 2), ('ProveOwner, 3), ('ClaimVT, 4), ('Withdraw, 5)]
 PlutusTx.makeIsDataIndexed  ''ContractInfo      [('ContractInfo, 0)]
 
 PlutusTx.makeLift           ''ContractInfo
