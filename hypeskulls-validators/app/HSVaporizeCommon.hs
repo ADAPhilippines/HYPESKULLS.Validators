@@ -38,9 +38,9 @@ data ContractInfo = ContractInfo
     , ciMinUtxoLovelace         :: !Integer
     , ciPriceTierDelta          :: !Integer
     , ciDefaultShadowHSOwner    :: !PubKeyHash
-    , ciVaporTokenName          :: !BuiltinByteString 
-    , ciPTTokenPrefix           :: !BuiltinByteString 
-    , ciShadowHSPrefix      :: !BuiltinByteString
+    , ciVTAffix                 :: !BuiltinByteString 
+    , ciPTTokenAffix            :: !BuiltinByteString 
+    , ciShadowHSAffix           :: !BuiltinByteString
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -50,9 +50,9 @@ contractInfo = ContractInfo
     , ciMinUtxoLovelace         = 2_000_000
     , ciPriceTierDelta          = 10
     , ciDefaultShadowHSOwner    = ""
-    , ciVaporTokenName          = "HYPESKULLS_VT_"
-    , ciPTTokenPrefix           = "VAP"
-    , ciShadowHSPrefix          = "SH_"
+    , ciVTAffix                 = "HYPESKULLS_VT_"
+    , ciPTTokenAffix            = "HYPESKULLS_PT"
+    , ciShadowHSAffix           = "_SH"
     }
 
 data VaporizeListDatum = VaporizeListDatum

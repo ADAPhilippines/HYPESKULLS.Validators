@@ -44,22 +44,22 @@ setupContract params = do
     awaitTxConfirmed $ txId ledgerTx
     logInfo @String $ "set up contract address"
 
-findScriptUtxos :: (AsContractError e) => BuiltinByteString -> Contract w s e [(TxOutRef, ChainIndexTxOut, AssetClass)]
-findScriptUtxos prefix = do
-    utxos <- utxosAt hsVaporizeAddress
+findScriptUtxos :: (AsContractError e) => Integer -> BuiltinByteString -> Contract w s e [(TxOutRef, ChainIndexTxOut, AssetClass)]
+findScriptUtxos startIdx affix = do
+    utxos <- utxosAt hsVaporizeAddress 
     return [ (oref, o, AssetClass (hypePolicyId, tn o)) | (oref, o) <- Map.toList utxos, tn o /= ""]
     where
         hypePolicyId = ciPolicy contractInfo
         utxoAssets utxo = [ (cs, tn', n) | (cs, tn', n) <- Value.flattenValue (txOutValue $ toTxOut utxo), cs == hypePolicyId]
         tn utxo =
             case utxoAssets utxo of
-                [(_,tn',_)]    -> if isRightPrefix tn' then tn' else ""
+                [(_,tn',_)]    -> if isRightAffix tn' then tn' else ""
                 _               -> ""
-        isRightPrefix tn' = prefix == P.sliceByteString 0 3 (unTokenName tn')
+        isRightAffix tn' = affix == P.sliceByteString startIdx (lengthOfByteString affix) (unTokenName tn')
 
 logUtxos :: (AsContractError e) => Contract w s e ()
 logUtxos = do
-    shadowHSUtxos <- findScriptUtxos "SH_"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
     logInfo @String $ "found shadow utxos: " P.++ show (P.length shadowHSUtxos)
 
 
@@ -67,8 +67,8 @@ vaporize :: (AsContractError e) => VaporizeParams -> Contract w s e ()
 vaporize params = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    shadowHSUtxos <- findScriptUtxos "SH_"
-    ptUtxos <- findScriptUtxos "VAP"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
+    ptUtxos <- findScriptUtxos 0 (ciPTTokenAffix contractInfo)
     case (shadowHSUtxos, ptUtxos) of
         ([],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos')  -> do
@@ -103,7 +103,7 @@ deliver :: (AsContractError e) => DeliverParams -> Contract w s e ()
 deliver params = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    shadowHSUtxos <- findScriptUtxos "SH_"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
     case shadowHSUtxos of
         []      -> logInfo @String "No utxos at script address"
         utxos   -> do
@@ -130,8 +130,8 @@ withdraw :: (AsContractError e) =>Contract w s e ()
 withdraw = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    shadowHSUtxos <- findScriptUtxos "SH_"
-    ptUtxos <- findScriptUtxos "VAP"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
+    ptUtxos <- findScriptUtxos 0 (ciPTTokenAffix contractInfo)
     case (shadowHSUtxos, ptUtxos) of
         ([],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos')  -> do

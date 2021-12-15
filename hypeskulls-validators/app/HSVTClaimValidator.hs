@@ -13,7 +13,6 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE BangPatterns           #-}
--- This example is taken directly from cardano-api, written by Jordan Millar, IOHK
 
 module HSVTClaimValidator
     ( hsVTClaimSerialised
@@ -37,35 +36,33 @@ import              PlutusTx.Prelude        hiding (Semigroup (..), unless)
 import              Cardano.Api             ( PlutusScriptV1 )
 import qualified    Plutus.V1.Ledger.Ada    as Ada
 import              HSVTClaimCommon
-import Plutus.V1.Ledger.Ada (adaSymbol)
 
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciShadowHSPrefix)                      &&&
+        (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)                    &&&
                                             traceIfFalse "No matching OS HYPESKULL  sent to self"   hasMatchingOSHYPESKULL                              &&&
                                             traceIfFalse "Shadow HYPESKULL not disposed"            isMarkerNFTDisposed                                 &&&
-                                            traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned totalNFTsReturned)
+                                            traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs                               &&&
+                                            traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned 1)
 
-        (VRTDatum _, CommitRandom)      ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVRTPrefix)                           &&&
+        (VRTDatum _, CommitRandom)      ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVRTAffix)                          &&&
+                                            traceIfFalse "No Shadow HS disposed"                    isShadowHSDisposed                                  &&&
                                             traceIfFalse "VRT UTXO not available"                   isVRTUtxoAvailable                                  &&&
-                                            traceIfFalse "VRT Token not returned properly"          isVRTReturnedProperly                               &&&
-                                            traceIfFalse "Invalid Datum"                            isVRTCommitDatumValid                               &&&
-                                            traceIfFalse "Wrong amount of VRT tokens committed"     isVRTCommitTokenAmountCorrect
+                                            traceIfFalse "VRT Token not returned properly"          isVRTReturnedProperly                               
 
-        (VRTDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVRTPrefix)                           &&&
+        (VRTDatum _, ProveOwner)        ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVRTAffix)                          &&&
+                                            traceIfFalse "Spender not allowed"                      isVRTSpendingAllowed                                &&&
+                                            traceIfFalse "VRT Token not returned properly"          isVRTReturnedProperly       
+
+        (VRTDatum _, UseRandom)         ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVRTAffix)                          &&&
                                             traceIfFalse "Spender not allowed"                      isVRTSpendingAllowed                                &&&
                                             traceIfFalse "VRT Token not disposed"                   isMarkerNFTDisposed                                 &&&
                                             traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned totalNFTsUsed)
 
-        (VRTDatum _, ProveOwner)        ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVRTPrefix)                           &&&
-                                            traceIfFalse "Spender not allowed"                      isVRTSpendingAllowed                                &&&
-                                            traceIfFalse "VRT Token not returned properly"          isVRTReturnedProperly                               &&&
-                                            traceIfFalse "Invalid Datum"                            isVRTCommitDatumValid       
-
-        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciVTPrefix)                            &&&
+        (VTDatum _, ClaimVT)            ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciVTAffix)                           &&&
                                             traceIfFalse "Not allowed to claim VT"                  canClaimVT                    
 
         (_, Withdraw)                   ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
@@ -92,30 +89,28 @@ mkValidator ContractInfo{..} datum r ctx =
                     [(_, tn, _)]    -> tn
                     _               -> TokenName emptyByteString
 
-        isMrkrValid :: BuiltinByteString -> Bool
-        isMrkrValid bs = bs == P.sliceByteString 0 3 (unTokenName mrkrTN)
+        isMrkrValid :: Integer -> BuiltinByteString -> Bool
+        isMrkrValid startIdx bs = bs == P.sliceByteString startIdx (lengthOfByteString bs) (unTokenName mrkrTN)
 
         hasMatchingOSHYPESKULL :: Bool
         hasMatchingOSHYPESKULL = assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
-                    where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName mrkrTN
+                    where tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName mrkrTN
 
         isMarkerNFTDisposed :: Bool
         isMarkerNFTDisposed = assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy, mrkrTN)) == 1
 
-        totalNFTsReturned :: Integer
-        totalNFTsReturned = length  [   (cs, tn, n) 
-                                    |   (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH)
-                                    ,   cs == ciPolicy
-                                    ,   ciShadowHSPrefix == P.sliceByteString 0 3 (unTokenName tn)
-                                    ]
-
         totalNFTsUsed :: Integer
         totalNFTsUsed = length      [   (cs, tn, n) 
                                     |   (cs, tn, n) <- Value.flattenValue (valueSpent info)
-                                    ,   cs == ciPolicy
-                                    ,   (ciVRTPrefix == P.sliceByteString 0 3 (unTokenName tn))         |||
-                                        (ciShadowHSPrefix == P.sliceByteString 0 3 (unTokenName tn))    |||
-                                        ("_VT_" == P.sliceByteString 10 4 (unTokenName tn))
+                                    ,   let
+                                            lenVRTAffix     = lengthOfByteString ciVRTAffix
+                                            lenShadowAffix  = lengthOfByteString ciShadowHSAffix
+                                            lenVTAffix  = lengthOfByteString ciVTAffix
+                                        in
+                                        (cs == ciPolicy)                                                            &&&
+                                        ((ciVRTAffix == P.sliceByteString 0 lenVRTAffix (unTokenName tn))           |||
+                                        (ciShadowHSAffix == P.sliceByteString 13 lenShadowAffix (unTokenName tn))   |||
+                                        (ciVTAffix == P.sliceByteString 0 lenVTAffix (unTokenName tn)))
                                     ]
 
         isMinUtxoLovelaceReturned :: Integer -> Bool
@@ -140,15 +135,8 @@ mkValidator ContractInfo{..} datum r ctx =
                                         in 
                                         (2 == length flatVal) &&&
                                         (AssetCount (ciPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- flatVal]) &&&
-                                        (AssetCount (adaSymbol, Ada.adaToken, ciMinUtxoLovelace) `elem` [ AssetCount x | x <- flatVal])
+                                        (AssetCount (Ada.adaSymbol, Ada.adaToken, ciMinUtxoLovelace) `elem` [ AssetCount x | x <- flatVal])
                                     ]
-                        
-
-        isVRTReturnedProperly :: Bool
-        isVRTReturnedProperly =
-            case getContinuingMarkerTxOut of
-                Nothing -> False
-                Just _  ->  True
 
         getDatum :: TxOut -> Maybe Datum
         getDatum o = do
@@ -163,19 +151,23 @@ mkValidator ContractInfo{..} datum r ctx =
                     Datum d' <- getDatum o'
                     PlutusTx.fromBuiltinData d'
 
-        isVRTCommitDatumValid :: Bool
-        isVRTCommitDatumValid =
+        isVRTReturnedProperly :: Bool
+        isVRTReturnedProperly =
             case getVTClaimDatum getContinuingMarkerTxOut of
                 Nothing             -> False
                 Just (VRTDatum pkh) -> pkh == sig
-
-        isVRTCommitTokenAmountCorrect :: Bool
-        isVRTCommitTokenAmountCorrect = length vRTsSpent == 2 * totalNFTsReturned
-            where 
-                vRTsSpent   =   [ (cs, tn, n)
-                                | (cs, tn, n) <- Value.flattenValue (valueSpent info)
-                                , cs == ciPolicy
-                                , ciVRTPrefix == P.sliceByteString 0 3 (unTokenName tn)]
+        
+        isShadowHSDisposed :: Bool
+        isShadowHSDisposed = 
+            case disposedShadowHSs of
+                [_] -> True 
+                _   -> False
+            where
+                disposedShadowHSs = [   (cs, tn, n) 
+                                    |   (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH)
+                                    ,   cs == ciPolicy
+                                    ,   ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn)
+                                    ]
 
         isVRTSpendingAllowed :: Bool
         isVRTSpendingAllowed =
@@ -188,7 +180,7 @@ mkValidator ContractInfo{..} datum r ctx =
             case datum of
                 VTDatum hash -> mbTN
                     where
-                        hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valueSpent info), cs == ciPolicy]
+                        hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH), cs == ciPolicy]
                         matchingVRT = filter (\(_,tn,_) -> hash == sha2_256 (unTokenName tn P.<> "_" P.<> ciNonce)) hypeNFTsSpent
                         mbTN =
                             case matchingVRT of
@@ -210,6 +202,14 @@ mkValidator ContractInfo{..} datum r ctx =
             case getVTClaimDatum getInputTxOutWithVRT of
                 Nothing             -> False
                 Just (VRTDatum pkh) -> pkh == sig
+        
+        hasTwoValidatorInputs :: Bool
+        hasTwoValidatorInputs =
+                let
+                    validatorInputs :: [TxInInfo]
+                    validatorInputs = filter (isJust . toValidatorHash . txOutAddress . txInInfoResolved) $ txInfoInputs info
+                in
+                    length validatorInputs == 2
 
 
 

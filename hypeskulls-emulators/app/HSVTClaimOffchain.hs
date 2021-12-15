@@ -44,8 +44,8 @@ setupContract params = do
     awaitTxConfirmed $ txId ledgerTx
     logInfo @String $ "set up contract address"
 
-findScriptUtxos :: (AsContractError e) => BuiltinByteString -> Contract w s e [(TxOutRef, ChainIndexTxOut, AssetClass)]
-findScriptUtxos prefix = do
+findScriptUtxos :: (AsContractError e) => Integer -> BuiltinByteString -> Contract w s e [(TxOutRef, ChainIndexTxOut, AssetClass)]
+findScriptUtxos startIdx affix = do
     utxos <- utxosAt hsVTClaimAddress
     return [ (oref, o, AssetClass (hypePolicyId, tn o)) | (oref, o) <- Map.toList utxos, tn o /= ""]
     where
@@ -53,14 +53,14 @@ findScriptUtxos prefix = do
         utxoAssets utxo = [ (cs, tn', n) | (cs, tn', n) <- Value.flattenValue (txOutValue $ toTxOut utxo), cs == hypePolicyId]
         tn utxo =
             case utxoAssets utxo of
-                [(_,tn',_)]    -> if isRightPrefix tn' then tn' else ""
+                [(_,tn',_)]    -> if isRightAffix tn' then tn' else ""
                 _               -> ""
-        isRightPrefix tn' = prefix == P.sliceByteString 0 3 (unTokenName tn')
+        isRightAffix tn' = affix == P.sliceByteString startIdx (lengthOfByteString affix) (unTokenName tn')
 
 logUtxos :: (AsContractError e) => Contract w s e ()
 logUtxos = do
-    shadowHSUtxos <- findScriptUtxos "SH_"
-    vrtUtxos <- findScriptUtxos "VRT"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
+    vrtUtxos <- findScriptUtxos 0 (ciVRTAffix contractInfo)
     logInfo @String $ "found shadow utxos: " P.++ show (P.length shadowHSUtxos)
     logInfo @String $ " VRT utxos: " P.++ show (P.length vrtUtxos)
 
@@ -69,8 +69,8 @@ commit :: (AsContractError e) => Contract w s e ()
 commit = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    shadowHSUtxos <- findScriptUtxos "SH_"
-    vrtUtxos <- findScriptUtxos "VRT"
+    shadowHSUtxos <- findScriptUtxos 13 (ciShadowHSAffix contractInfo)
+    vrtUtxos <- findScriptUtxos 0 (ciVRTAffix contractInfo)
     case (shadowHSUtxos, vrtUtxos) of
         ([],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos')  -> do
@@ -101,8 +101,8 @@ claim :: (AsContractError e) => Contract w s e ()
 claim = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    vrtUtxos <- findScriptUtxos "VRT"
-    vtUtxos <- findScriptUtxos "HYP"
+    vrtUtxos <- findScriptUtxos 0 (ciVRTAffix contractInfo)
+    vtUtxos <- findScriptUtxos 0 (ciVTAffix contractInfo)
     case (vrtUtxos, vtUtxos) of
         ([],[])         -> logInfo @String "No valid utxos at script address"
         (_,[])          -> logInfo @String "No valid VRT utxos at script address"
@@ -127,34 +127,12 @@ claim = do
             awaitTxConfirmed $ txId ledgerTx
             logInfo @String $ "Vapor Tokens Claimed"
 
-cheat :: (AsContractError e) => Contract w s e ()
-cheat = do
-    pkh <- pubKeyHash <$> Contract.ownPubKey
-    ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    utxos <- utxosAt hsVTClaimAddress
-    case Map.toList utxos of
-        []  -> logInfo @String "No utxos at script address"
-        xs  -> do
-            let lookups =   Constraints.unspentOutputs utxos    <>
-                            Constraints.unspentOutputs ownUtxos <>
-                            Constraints.otherScript hsVTClaimValidator
-                tx      =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData CommitSkull) | (oref, _) <- xs]      <>
-                            Constraints.mustPayToPubKey pkh (   Value.singleton (ciPolicy contractInfo) "HYPESKULL0001" 1                           <>
-                                                                Value.singleton (ciPolicy contractInfo) "HYPESKULL0002" 1)                          <>
-                            Constraints.mustPayToPubKey (ciAdminPKH contractInfo) ( Value.singleton (ciPolicy contractInfo) "SH_HYPESKULL0001" 1    <>
-                                                                                    Value.singleton (ciPolicy contractInfo) "SH_HYPESKULL0002" 1    <>
-                                                                                    Value.singleton (ciPolicy contractInfo) "SH_HYPESKULL0003" 1)
-            logInfo @String $ "found script utxos: " P.++ show (P.length xs)
-            ledgerTx <- submitTxConstraintsWith @HSVTClaim lookups tx
-            awaitTxConfirmed $ txId ledgerTx
-            logInfo @String $ "funds pwned"
-
 
 withdraw :: (AsContractError e) => Contract w s e ()
 withdraw = do
-    shadowHSUtxos <- findScriptUtxos "SH_"
-    vrtUtxos <- findScriptUtxos "VRT"
-    vtUtxos <- findScriptUtxos "HYP"
+    shadowHSUtxos <- findScriptUtxos 12 (ciShadowHSAffix contractInfo)
+    vrtUtxos <- findScriptUtxos 0 (ciVRTAffix contractInfo)
+    vtUtxos <- findScriptUtxos 0 (ciVTAffix contractInfo)
     case (shadowHSUtxos, vrtUtxos, vtUtxos) of
         ([],[],[])  -> logInfo @String "No utxos at script address"
         (utxos, utxos', utxos'')  -> do
@@ -176,7 +154,7 @@ proveOwner :: (AsContractError e) => Contract w s e ()
 proveOwner = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     ownUtxos <- utxosAt $ pubKeyHashAddress pkh
-    vrtUtxos <- findScriptUtxos "VRT"
+    vrtUtxos <- findScriptUtxos 0 (ciVRTAffix contractInfo)
     case vrtUtxos of
         []      -> logInfo @String "No valid utxos at script address"
         utxos   -> do

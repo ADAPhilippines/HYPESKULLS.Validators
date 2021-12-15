@@ -13,7 +13,6 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE BangPatterns           #-}
--- This example is taken directly from cardano-api, written by Jordan Millar, IOHK
 
 module HSVaporizeValidator
     ( hsVaporizeSerialised
@@ -43,19 +42,19 @@ import              HSVaporizeCommon
 mkValidator :: ContractInfo -> VaporizeDatum -> VaporizeAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (PTDatum _, Vaporize)       ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciPTTokenPrefix)       &&&
+        (PTDatum _, Vaporize)       ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciPTTokenAffix)      &&&
                                         traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
                                         traceIfFalse "Vaporization fees not paid"               isFeePaid                           &&&
                                         traceIfFalse "Vapor_PT token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New PT datum invalid"                     isNewPTDatumValid
-
-        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciShadowHSPrefix)      &&&
+                                        
+        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)    &&&
                                         traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
                                         traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL              &&&
                                         traceIfFalse "ShadowHS token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid
 
-        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid ciShadowHSPrefix)      &&&
+        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)   &&&
                                         traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid'
 
@@ -82,8 +81,8 @@ mkValidator ContractInfo{..} datum r ctx =
                     [(_, tn, _)]    -> tn
                     _               -> TokenName ""
             
-            isMrkrValid :: BuiltinByteString -> Bool
-            isMrkrValid bs = bs == P.sliceByteString 0 3 (unTokenName mrkrTN)
+            isMrkrValid :: Integer -> BuiltinByteString -> Bool
+            isMrkrValid startIdx bs = bs == P.sliceByteString startIdx (lengthOfByteString bs) (unTokenName mrkrTN)
 
             isFeePaid :: Bool
             isFeePaid =
@@ -146,7 +145,7 @@ mkValidator ContractInfo{..} datum r ctx =
                                 (length os - length os' == 1)                           &&&
                                 case getDiff os os' of
                                     [v] ->  1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
-                                                (AssetClass (ciPolicy, TokenName $ ciVaporTokenName P.<> v))
+                                                (AssetClass (ciPolicy, TokenName $ ciVTAffix P.<> v))
                                     _   -> False
                             _   -> False
 
@@ -164,7 +163,7 @@ mkValidator ContractInfo{..} datum r ctx =
                                 case getDiff ds ds' of
                                     [v] ->  (v `elem` os)           &&&
                                             (1 ==  assetClassValueOf (valuePaidTo info pkh)
-                                                (AssetClass (ciPolicy, TokenName $ P.sliceByteString 3 13 (unTokenName mrkrTN) P.<> "_" P.<> v)))
+                                                (AssetClass (ciPolicy, TokenName $ P.sliceByteString 0 13 (unTokenName mrkrTN) P.<> "_" P.<> v)))
                                     _   -> False
                             _   -> False
 
@@ -176,7 +175,7 @@ mkValidator ContractInfo{..} datum r ctx =
             hasMatchingOSHYPESKULL :: Bool
             hasMatchingOSHYPESKULL =
                 assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
-                    where tn' = TokenName $ P.sliceByteString 3 13 $ unTokenName mrkrTN
+                    where tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName mrkrTN
 
             hasTwoValidatorInputs :: Bool
             hasTwoValidatorInputs =
@@ -193,7 +192,7 @@ mkValidator ContractInfo{..} datum r ctx =
                     ptTokenSpent =  [ (cs, tn, n)
                                     | (cs, tn, n) <- Value.flattenValue (valueSpent info)
                                     , cs == ciPolicy
-                                    , ciPTTokenPrefix == P.sliceByteString 0 3 (unTokenName tn)
+                                    , tn == TokenName ciPTTokenAffix
                                     , n == 1]
                 in
                     length ptTokenSpent == 1

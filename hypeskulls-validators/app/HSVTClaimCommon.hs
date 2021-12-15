@@ -36,9 +36,9 @@ data ContractInfo = ContractInfo
     , ciMinUtxoLovelace     :: !Integer
     , ciDefaultVRTOwner     :: !PubKeyHash
     , ciNonce               :: !BuiltinByteString
-    , ciShadowHSPrefix      :: !BuiltinByteString
-    , ciVRTPrefix           :: !BuiltinByteString
-    , ciVTPrefix            :: !BuiltinByteString
+    , ciShadowHSAffix       :: !BuiltinByteString
+    , ciVRTAffix            :: !BuiltinByteString
+    , ciVTAffix             :: !BuiltinByteString
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -47,9 +47,9 @@ contractInfo = ContractInfo
     , ciPolicy              = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
     , ciMinUtxoLovelace     = 2_000_000
     , ciDefaultVRTOwner     = ""
-    , ciShadowHSPrefix      = "SH_"
-    , ciVRTPrefix           = "VRT"
-    , ciVTPrefix            = "HYP"
+    , ciShadowHSAffix      = "_SH"
+    , ciVRTAffix           = "HYPESKULLS_VRT_"
+    , ciVTAffix            = "HYPESKULLS_VT_"
     , ciNonce               = "testnonce"
     }
 
