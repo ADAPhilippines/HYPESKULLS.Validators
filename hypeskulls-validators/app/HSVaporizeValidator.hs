@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveAnyClass         #-}
 {-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE DerivingStrategies     #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
@@ -37,25 +38,23 @@ import              Cardano.Api             ( PlutusScriptV1 )
 import qualified    Plutus.V1.Ledger.Ada    as Ada
 import              HSVaporizeCommon
 
+  
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> VaporizeDatum -> VaporizeAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
-        (PTDatum _, Vaporize)       ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 0 ciPTTokenAffix)      &&&
-                                        traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
+        (PTDatum _, Vaporize)       ->  traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs               &&&
                                         traceIfFalse "Vaporization fees not paid"               isFeePaid                           &&&
                                         traceIfFalse "Vapor_PT token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New PT datum invalid"                     isNewPTDatumValid
                                         
-        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)    &&&
-                                        traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
+        (ShadowHSDatum _, Vaporize) ->  traceIfFalse "Must spend at least 1 PT Token"           hasOnePTTokenSpent                  &&&
                                         traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL              &&&
                                         traceIfFalse "ShadowHS token not returned properly"     isMrkrReturnedProperly              &&&
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid
 
-        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)   &&&
-                                        traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
+        (ShadowHSDatum _, Deliver)  ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&   
                                         traceIfFalse "New SH datum invalid"                     isNewShadowHSDatumValid'
 
         (_, Withdraw)               ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
@@ -63,26 +62,17 @@ mkValidator ContractInfo{..} datum r ctx =
         _                           ->  traceIfFalse "Invalid datum and redeemer pair"          False
         where
             info :: TxInfo
-            info = scriptContextTxInfo ctx
+            !info = scriptContextTxInfo ctx
 
             sig :: PubKeyHash
             sig = case txInfoSignatories info of
                     [pkh] -> pkh
 
-            ownInputValue :: Value.Value
-            ownInputValue =
-                case findOwnInput ctx of
-                    Nothing         -> Ada.lovelaceValueOf 1
-                    Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
-
             mrkrTN :: TokenName
-            mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
+            mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (txOutValue (ownInput ctx)), cs == ciPolicy] in
                 case os of
                     [(_, tn, _)]    -> tn
                     _               -> TokenName ""
-            
-            isMrkrValid :: Integer -> BuiltinByteString -> Bool
-            isMrkrValid startIdx bs = bs == P.sliceByteString startIdx (lengthOfByteString bs) (unTokenName mrkrTN)
 
             isFeePaid :: Bool
             isFeePaid =
@@ -131,6 +121,22 @@ mkValidator ContractInfo{..} datum r ctx =
                             PTDatum price   -> price + 10 == newPrice
                             _               -> False
 
+            getVTName :: Integer -> Integer -> BuiltinByteString
+            getVTName old new = 
+                if ((new > old) &&& isPowOf2 &&& isUnique)
+                then ciVaporTokenNames !! vtIdx
+                else ciEmptyByteString
+                where 
+                    pow n e     = if e == 0 then 1 else 2 * pow n (e - 1)
+                    log2 n      = if n == 1 then 0 else 1 + log2 (n `divide` 2) 
+                    toBinary n  = if n == 0 then [0] else modulo n 2 : toBinary (n `divide` 2)
+                    !diff'       = new - old
+                    !vtIdx       = log2 diff'
+                    !oldBin      = toBinary old
+                    !oldBinLen   = length oldBin
+                    !isPowOf2    = pow 2 vtIdx == diff'
+                    !isUnique    = (oldBinLen <= vtIdx) ||| (0 == (oldBin !! vtIdx))
+
             isNewShadowHSDatumValid :: Bool
             isNewShadowHSDatumValid =
                 case getVaporizeDatum getContinuingMrkrTxOut of
@@ -139,14 +145,9 @@ mkValidator ContractInfo{..} datum r ctx =
                         case datum of
                             ShadowHSDatum (VaporizeListDatum pkh' os' ds') -> 
                                 (ds' == ds)                                             &&& 
-                                ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig))    &&& 
-                                (pkh == sig)                                            &&&
-                                (length os == length (nub os))                          &&&
-                                (length os - length os' == 1)                           &&&
-                                case getDiff os os' of
-                                    [v] ->  1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
-                                                (AssetClass (ciPolicy, TokenName $ ciVTAffix P.<> v))
-                                    _   -> False
+                                ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig))    &&&
+                                (1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
+                                    (AssetClass (ciPolicy, TokenName $ ciVTAffix P.<> (getVTName os' os))))
                             _   -> False
 
             isNewShadowHSDatumValid' :: Bool
@@ -158,19 +159,9 @@ mkValidator ContractInfo{..} datum r ctx =
                             ShadowHSDatum (VaporizeListDatum pkh' os' ds') -> 
                                 (os == os')                         &&&
                                 (pkh' == pkh)                       &&&
-                                (length ds == length (nub ds))      &&&
-                                (length ds - length ds' == 1)       &&&
-                                case getDiff ds ds' of
-                                    [v] ->  (v `elem` os)           &&&
-                                            (1 ==  assetClassValueOf (valuePaidTo info pkh)
-                                                (AssetClass (ciPolicy, TokenName $ P.sliceByteString 0 13 (unTokenName mrkrTN) P.<> "_" P.<> v)))
-                                    _   -> False
+                                (1 ==  assetClassValueOf (valuePaidTo info pkh)
+                                    (AssetClass (ciPolicy, TokenName $ P.sliceByteString 0 13 (unTokenName mrkrTN) P.<> "_" P.<> (getVTName ds' ds))))
                             _   -> False
-
-            getDiff :: Eq a => [a] -> [a] -> [a]
-            getDiff xs [] = xs
-            getDiff [] _ = []
-            getDiff (x:xs) ys =  if x `elem` ys then getDiff xs ys else x:getDiff xs ys
 
             hasMatchingOSHYPESKULL :: Bool
             hasMatchingOSHYPESKULL =
@@ -197,6 +188,16 @@ mkValidator ContractInfo{..} datum r ctx =
                 in
                     length ptTokenSpent == 1
 
+            ownInput :: ScriptContext -> TxOut
+            ownInput (ScriptContext t_info (Spending o_ref)) = getScriptInput (txInfoInputs t_info) o_ref
+            ownInput _ = traceError "script input not found !!!"
+
+            getScriptInput :: [TxInInfo] -> TxOutRef -> TxOut
+            getScriptInput [] _ = traceError "script input not found !!!"
+            getScriptInput ((TxInInfo tref ot) : tl) o_ref
+                | tref == o_ref = ot
+                | otherwise = getScriptInput tl o_ref
+                
 
 
 

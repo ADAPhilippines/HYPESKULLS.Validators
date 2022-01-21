@@ -50,5 +50,5 @@ library
                         , text
                         , plutus-pretty
 
-    ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-specialise
+    ghc-options:        -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-specialise -fno-strictness
 

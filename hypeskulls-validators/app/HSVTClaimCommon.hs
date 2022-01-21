@@ -43,9 +43,9 @@ data ContractInfo = ContractInfo
 
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
-    { ciAdminPKH            = "a096d51da85c3eaabe2718be7b59f51291979935ad77b8deb4622fa3"
-    , ciPolicy              = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
-    , ciMinUtxoLovelace     = 2_000_000
+    { ciAdminPKH            = "dbf64d0b70b89dab5872db86ff5d393bc548fcd3b8eba60610cae83c"
+    , ciPolicy              = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
+    , ciMinUtxoLovelace     = 3_000_000
     , ciDefaultVRTOwner     = ""
     , ciShadowHSAffix      = "_SH"
     , ciVRTAffix           = "HYPESKULLS_VRT_"

@@ -25,6 +25,7 @@ import            HSVaporizeCommon
 import            HSVTClaimValidator
 import            HSVaporizeValidator
 import            Data.String (IsString(fromString))
+import            PlutusTx.Builtins
 import            PlutusTx.Builtins.Class (stringToBuiltinByteString)
 import            Plutus.V1.Ledger.Crypto
 import            Plutus.V1.Ledger.Value
@@ -43,13 +44,14 @@ writeHSVTClaimScript =
   do
   putStrLn "HSVTClaim Datums:"
   print $ "ShadowHSDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVTClaimCommon.ShadowHSDatum))
-  print $ "VTRDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTRDatum "abcd"))
-  print $ "VTDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTDatum "abcd"))
+  print $ "VTRDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VRTDatum "e282f7df7450c46c97ec221c5a54fc1ff54cafa7229f121e62410ea8"))
+  print $ "VTDatum value: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData $ VTDatum $ sha2_256 "HYPESKULLS_VRT_0001_testnonce"))
   
   putStrLn "HSVTClaim Actions:"
   print $ "CommitSkull: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData CommitSkull))
   print $ "CommitRandom: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData CommitRandom))
   print $ "UseRandom: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData UseRandom))
+  print $ "ProveOwner: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData ProveOwner))
   print $ "ClaimVT: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData ClaimVT))
   print $ "Withdraw: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVTClaimCommon.Withdraw))
 
@@ -65,7 +67,7 @@ writeHSVaporizeScript =
   putStrLn "HSVaporize Datums:"
   print $ "ShadowHSDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
-    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "abcd" ["MK_EE"] ["SP_C"])))
+    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "aa97ee3cb9e684df6130b741aafc2a7f14f61b0673874df803fd8edb" 0 0)))
   print $ "PTDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
     $ fromPlutusData (PlutusTx.toData $ PTDatum 70))

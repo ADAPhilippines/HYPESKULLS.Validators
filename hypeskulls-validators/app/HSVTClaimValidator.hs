@@ -43,7 +43,7 @@ mkValidator :: ContractInfo -> VTClaimDatum -> VTClaimAction -> ScriptContext ->
 mkValidator ContractInfo{..} datum r ctx =
     case (datum, r) of
         (ShadowHSDatum, CommitSkull)    ->  traceIfFalse "Wrong input for this redeemer"            (isMrkrValid 13 ciShadowHSAffix)                    &&&
-                                            traceIfFalse "No matching OS HYPESKULL  sent to self"   hasMatchingOSHYPESKULL                              &&&
+                                            traceIfFalse "No matching OS HYPESKULL sent to self"    hasMatchingOSHYPESKULL                              &&&
                                             traceIfFalse "Shadow HYPESKULL not disposed"            isMarkerNFTDisposed                                 &&&
                                             traceIfFalse "Tx must have two validators"              hasTwoValidatorInputs                               &&&
                                             traceIfFalse "Minimum lovelace not returned"            (isMinUtxoLovelaceReturned 1)

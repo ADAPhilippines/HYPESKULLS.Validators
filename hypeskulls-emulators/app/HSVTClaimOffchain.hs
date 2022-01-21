@@ -34,15 +34,17 @@ import              HSVTClaimCommon
 
 setupContract :: (AsContractError e) => SetupParams -> Contract w s e ()
 setupContract params = do
+    pkh <- pubKeyHash <$> Contract.ownPubKey
     let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
-        nftUtxoVal tn   =   assetClassValue (AssetClass (ciPolicy contractInfo, tn)) 1 <> Ada.lovelaceValueOf minUtxoLovelace
-        tx              =   mconcat[Constraints.mustPayToTheScript d (nftUtxoVal tn') | (tn', d) <- spVRTs params]  <>
-                            mconcat[Constraints.mustPayToTheScript d (nftUtxoVal tn') | (tn', d) <- spVTs params]   <>
-                            Constraints.mustPayToTheScript ShadowHSDatum (nftUtxoVal (spShadowHSTN params))
+        nftUtxoVal tn   =   assetClassValue (AssetClass (ciPolicy contractInfo, tn)) 1
+        tx              =   mconcat[Constraints.mustPayToTheScript d (Ada.lovelaceValueOf minUtxoLovelace <> nftUtxoVal tn') | (tn', d) <- spVRTs params]                                  <>
+                            Constraints.mustPayToTheScript (snd $ H.head $ spVTs params) (Ada.lovelaceValueOf minUtxoLovelace <> mconcat[nftUtxoVal tn' | (tn', _) <- spVTs params])       <>
+                            Constraints.mustPayToTheScript ShadowHSDatum (Ada.lovelaceValueOf minUtxoLovelace <> nftUtxoVal (spShadowHSTN params))
 
     ledgerTx <- submitTxConstraints (hsVTClaimInstance contractInfo) tx
     awaitTxConfirmed $ txId ledgerTx
     logInfo @String $ "set up contract address"
+    logInfo @String $ show pkh
 
 findScriptUtxos :: (AsContractError e) => Integer -> BuiltinByteString -> Contract w s e [(TxOutRef, ChainIndexTxOut, AssetClass)]
 findScriptUtxos startIdx affix = do
@@ -53,7 +55,7 @@ findScriptUtxos startIdx affix = do
         utxoAssets utxo = [ (cs, tn', n) | (cs, tn', n) <- Value.flattenValue (txOutValue $ toTxOut utxo), cs == hypePolicyId]
         tn utxo =
             case utxoAssets utxo of
-                [(_,tn',_)]    -> if isRightAffix tn' then tn' else ""
+                (_,tn',_):_    -> if isRightAffix tn' then tn' else ""
                 _               -> ""
         isRightAffix tn' = affix == P.sliceByteString startIdx (lengthOfByteString affix) (unTokenName tn')
 
@@ -105,8 +107,8 @@ claim = do
     vtUtxos <- findScriptUtxos 0 (ciVTAffix contractInfo)
     case (vrtUtxos, vtUtxos) of
         ([],[])         -> logInfo @String "No valid utxos at script address"
-        (_,[])          -> logInfo @String "No valid VRT utxos at script address"
-        ([],_)          -> logInfo @String "No valid VT utxos at script address"
+        (_,[])          -> logInfo @String "No valid VT utxos at script address"
+        ([],_)          -> logInfo @String "No valid VRT utxos at script address"
         (utxos, utxos') -> do
             let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
                 lookups         =   Constraints.unspentOutputs (Map.fromList [(oref, o)| (oref, o, _) <- utxos'])   <>

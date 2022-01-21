@@ -1,0 +1,3 @@
+package trace-dispatcher
+  ghc-options: -Wwarn
+

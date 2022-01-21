@@ -56,12 +56,12 @@ runEmulator = do
         h1 <- activateContractWallet (wallet 1) endpoints
         h2 <- activateContractWallet (wallet 2) endpoints
         void $ Emulator.waitNSlots 1
-        callEndpoint @"setup" h1 SetupParams
-            { spShadowHSTNs      =  [ ("SH_HYPESKULL0001",ShadowHSDatum (VaporizeListDatum "" ["SP_C","ADR_E"] []))
-                                    ]
-            , spPriceTierTNs    =   [ ("VAPOR_PT_001", PTDatum 70)
-                                    ]
-            }
+        -- callEndpoint @"setup" h1 SetupParams
+        --     { spShadowHSTNs      =  [ ("SH_HYPESKULL0001",ShadowHSDatum (VaporizeListDatum "" ["SP_C","ADR_E"] []))
+        --                             ]
+        --     , spPriceTierTNs    =   [ ("VAPOR_PT_001", PTDatum 70)
+        --                             ]
+        --     }
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         h1 ()
         void $ Emulator.waitNSlots  1
