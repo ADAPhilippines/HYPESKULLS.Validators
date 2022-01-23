@@ -1,2 +1,5 @@
 **/dist-newstyle/**
 **/node_modules/**
+**/seed_mnemonic.ts
+**/.DS_Store
+**/Config.ts

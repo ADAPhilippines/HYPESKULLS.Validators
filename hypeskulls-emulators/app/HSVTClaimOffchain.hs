@@ -36,7 +36,7 @@ setupContract :: (AsContractError e) => SetupParams -> Contract w s e ()
 setupContract params = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
-        nftUtxoVal tn   =   assetClassValue (AssetClass (ciPolicy contractInfo, tn)) 1
+        nftUtxoVal tn   =   assetClassValue (AssetClass (ciVaporPolicy contractInfo, tn)) 1
         tx              =   mconcat[Constraints.mustPayToTheScript d (Ada.lovelaceValueOf minUtxoLovelace <> nftUtxoVal tn') | (tn', d) <- spVRTs params]                                  <>
                             Constraints.mustPayToTheScript (snd $ H.head $ spVTs params) (Ada.lovelaceValueOf minUtxoLovelace <> mconcat[nftUtxoVal tn' | (tn', _) <- spVTs params])       <>
                             Constraints.mustPayToTheScript ShadowHSDatum (Ada.lovelaceValueOf minUtxoLovelace <> nftUtxoVal (spShadowHSTN params))
@@ -51,7 +51,7 @@ findScriptUtxos startIdx affix = do
     utxos <- utxosAt hsVTClaimAddress
     return [ (oref, o, AssetClass (hypePolicyId, tn o)) | (oref, o) <- Map.toList utxos, tn o /= ""]
     where
-        hypePolicyId = ciPolicy contractInfo
+        hypePolicyId = ciVaporPolicy contractInfo
         utxoAssets utxo = [ (cs, tn', n) | (cs, tn', n) <- Value.flattenValue (txOutValue $ toTxOut utxo), cs == hypePolicyId]
         tn utxo =
             case utxoAssets utxo of
@@ -93,7 +93,7 @@ commit = do
                                             newDatum 
                                             (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
                                             | (_, _, AssetClass (cs, tn)) <- utxos']                                                                                <>                
-                                    Constraints.mustPayToPubKey pkh (Value.singleton (ciPolicy contractInfo) "HYPESKULL0001" 1)                                     
+                                    Constraints.mustPayToPubKey pkh (Value.singleton (ciOriginPolicy contractInfo) "HYPESKULL0001" 1)                                     
             logInfo @String $ "found shadow utxos: " P.++ show (P.length utxos) P.++ " VRT utxos: " P.++ show (P.length utxos')
             ledgerTx <- submitTxConstraintsWith @HSVTClaim lookups tx
             awaitTxConfirmed $ txId ledgerTx

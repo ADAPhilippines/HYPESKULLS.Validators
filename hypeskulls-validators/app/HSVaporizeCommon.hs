@@ -34,7 +34,8 @@ import qualified    Prelude as Pr (Show (..), Eq)
 
 data ContractInfo = ContractInfo
     { ciAdminPKH                :: !PubKeyHash
-    , ciPolicy                  :: !CurrencySymbol
+    , ciOriginPolicy            :: !CurrencySymbol
+    , ciVaporPolicy             :: !CurrencySymbol
     , ciMinUtxoLovelace         :: !Integer
     , ciPriceTierDelta          :: !Integer
     , ciDefaultShadowHSOwner    :: !PubKeyHash
@@ -63,8 +64,9 @@ vaporTokenNames =
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
     { ciAdminPKH                = "dbf64d0b70b89dab5872db86ff5d393bc548fcd3b8eba60610cae83c"
-    , ciPolicy                  = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
-    , ciMinUtxoLovelace         = 3_000_000
+    , ciOriginPolicy            = "f3dfc1b6f369def06d1d576cfc98eb51e7e76ef1ecbb2f272c4f1621"
+    , ciVaporPolicy             = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
+    , ciMinUtxoLovelace         = 2_000_000
     , ciPriceTierDelta          = 10
     , ciDefaultShadowHSOwner    = ""
     , ciVTAffix                 = "HYPESKULLS_VT_"

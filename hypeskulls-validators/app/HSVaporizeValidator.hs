@@ -67,31 +67,37 @@ mkValidator ContractInfo{..} datum r ctx =
             sig :: PubKeyHash
             sig = case txInfoSignatories info of
                     [pkh] -> pkh
+            
+            continuingOutputs :: [TxOut]
+            !continuingOutputs = getContinuingOutputs ctx
 
             mrkrTN :: TokenName
-            mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (txOutValue (ownInput ctx)), cs == ciPolicy] in
+            mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (txOutValue (ownInput ctx)), cs == ciVaporPolicy] in
                 case os of
                     [(_, tn, _)]    -> tn
                     _               -> TokenName ""
 
             isFeePaid :: Bool
-            isFeePaid =
+            !isFeePaid =
                 case datum of
                     PTDatum price   -> 1_000_000 * price <= Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH))
                     _               -> False
 
             getContinuingMrkrTxOut :: Maybe TxOut
-            getContinuingMrkrTxOut =
+            !getContinuingMrkrTxOut =
                 case nftOuts of
                     [o]     -> Just o
                     _       -> Nothing
                 where
-                    nftOuts     =   [ o
-                                    | o <- getContinuingOutputs ctx
-                                    , 2 == length (Value.flattenValue (txOutValue o))
-                                    , AssetCount (ciPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- Value.flattenValue (txOutValue o)]
-                                    , Ada.getLovelace (Ada.fromValue(txOutValue o)) == ciMinUtxoLovelace ]
-
+                    nftOuts     = filter f continuingOutputs
+                        where
+                            f :: TxOut -> Bool
+                            f o =   (2 == length flattenedVal)                                                          &&&
+                                    (AssetCount (ciVaporPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- flattenedVal])  &&&
+                                    (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
+                                where
+                                    !txOutVal = txOutValue o
+                                    !flattenedVal = Value.flattenValue txOutVal
 
             getDatum :: TxOut -> Maybe Datum
             getDatum o = do
@@ -118,8 +124,17 @@ mkValidator ContractInfo{..} datum r ctx =
                     Nothing                 -> False
                     Just (PTDatum newPrice) ->
                         case datum of
-                            PTDatum price   -> price + 10 == newPrice
+                            PTDatum price   -> price + ciPriceTierDelta == newPrice
                             _               -> False
+
+            pow :: Integer -> Integer -> Integer    
+            pow n e     = if e == 0 then 1 else 2 * pow n (e - 1)
+
+            log2 :: Integer -> Integer
+            log2 n      = if n == 1 then 0 else 1 + log2 (n `divide` 2) 
+
+            toBinary:: Integer -> [Integer]
+            toBinary n  = if n == 0 then [0] else modulo n 2 : toBinary (n `divide` 2)
 
             getVTName :: Integer -> Integer -> BuiltinByteString
             getVTName old new = 
@@ -127,9 +142,6 @@ mkValidator ContractInfo{..} datum r ctx =
                 then ciVaporTokenNames !! vtIdx
                 else ciEmptyByteString
                 where 
-                    pow n e     = if e == 0 then 1 else 2 * pow n (e - 1)
-                    log2 n      = if n == 1 then 0 else 1 + log2 (n `divide` 2) 
-                    toBinary n  = if n == 0 then [0] else modulo n 2 : toBinary (n `divide` 2)
                     !diff'       = new - old
                     !vtIdx       = log2 diff'
                     !oldBin      = toBinary old
@@ -141,14 +153,29 @@ mkValidator ContractInfo{..} datum r ctx =
             isNewShadowHSDatumValid =
                 case getVaporizeDatum getContinuingMrkrTxOut of
                     Nothing                 -> False
-                    Just (ShadowHSDatum (VaporizeListDatum pkh os ds)) ->
+                    Just (ShadowHSDatum (VaporizeListDatum _ os ds)) ->
                         case datum of
                             ShadowHSDatum (VaporizeListDatum pkh' os' ds') -> 
                                 (ds' == ds)                                             &&& 
                                 ((pkh' == ciDefaultShadowHSOwner) ||| (pkh' == sig))    &&&
                                 (1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
-                                    (AssetClass (ciPolicy, TokenName $ ciVTAffix P.<> (getVTName os' os))))
+                                    (AssetClass (ciVaporPolicy, TokenName $ ciVTAffix P.<> (getVTName os' os))))
                             _   -> False
+            
+            getVTName' :: Integer -> Integer -> Integer -> BuiltinByteString
+            getVTName' old' old new = 
+                if ((new > old) &&& isPowOf2 &&& isUnique &&& isPresent)
+                then ciVaporTokenNames !! vtIdx
+                else ciEmptyByteString
+                where 
+                    !diff'       = new - old
+                    !vtIdx       = log2 diff'
+                    !oldBin      = toBinary old
+                    !oldBin'     = toBinary old'
+                    !oldBinLen   = length oldBin
+                    !isPowOf2    = pow 2 vtIdx == diff'
+                    !isUnique    = (oldBinLen <= vtIdx) ||| (0 == (oldBin !! vtIdx))
+                    !isPresent   = 1 == oldBin' !! vtIdx
 
             isNewShadowHSDatumValid' :: Bool
             isNewShadowHSDatumValid' =
@@ -160,12 +187,15 @@ mkValidator ContractInfo{..} datum r ctx =
                                 (os == os')                         &&&
                                 (pkh' == pkh)                       &&&
                                 (1 ==  assetClassValueOf (valuePaidTo info pkh)
-                                    (AssetClass (ciPolicy, TokenName $ P.sliceByteString 0 13 (unTokenName mrkrTN) P.<> "_" P.<> (getVTName ds' ds))))
+                                    (AssetClass ( ciVaporPolicy
+                                                , TokenName $ P.sliceByteString 0 13 (unTokenName mrkrTN)   P.<> 
+                                                "_"                                                         P.<> 
+                                                (getVTName' os' ds' ds))))
                             _   -> False
 
             hasMatchingOSHYPESKULL :: Bool
             hasMatchingOSHYPESKULL =
-                assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
+                assetClassValueOf (valuePaidTo info sig) (AssetClass (ciOriginPolicy, tn')) == 1
                     where tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName mrkrTN
 
             hasTwoValidatorInputs :: Bool
@@ -177,16 +207,15 @@ mkValidator ContractInfo{..} datum r ctx =
                     length validatorInputs == 2
 
             hasOnePTTokenSpent :: Bool
-            hasOnePTTokenSpent =
-                let
+            hasOnePTTokenSpent = length ptTokenSpent == 1
+                where
                     ptTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                    ptTokenSpent =  [ (cs, tn, n)
-                                    | (cs, tn, n) <- Value.flattenValue (valueSpent info)
-                                    , cs == ciPolicy
-                                    , tn == TokenName ciPTTokenAffix
-                                    , n == 1]
-                in
-                    length ptTokenSpent == 1
+                    ptTokenSpent =  filter f (Value.flattenValue (valueSpent info))
+                        where
+                            f (cs, tn, n) = (cs == ciVaporPolicy)               &&& 
+                                            (tn == TokenName ciPTTokenAffix)    &&& 
+                                            (n == 1)
+                    
 
             ownInput :: ScriptContext -> TxOut
             ownInput (ScriptContext t_info (Spending o_ref)) = getScriptInput (txInfoInputs t_info) o_ref

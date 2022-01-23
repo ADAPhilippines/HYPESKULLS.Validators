@@ -37,7 +37,7 @@ import              HSVaporizeValidator
 setupContract :: (AsContractError e) => SetupParams -> Contract w s e ()
 setupContract params = do
     let minUtxoLovelace =   ciMinUtxoLovelace contractInfo
-        nftUtxoVal tn   =   assetClassValue (AssetClass (ciPolicy contractInfo, tn)) 1 <> Ada.lovelaceValueOf minUtxoLovelace
+        nftUtxoVal tn   =   assetClassValue (AssetClass (ciVaporPolicy contractInfo, tn)) 1 <> Ada.lovelaceValueOf minUtxoLovelace
         tx              =   mconcat[Constraints.mustPayToTheScript d (nftUtxoVal tn') | (tn', d) <- spShadowHSTNs params]  <>
                             mconcat[Constraints.mustPayToTheScript d (nftUtxoVal tn') | (tn', d) <- spPriceTierTNs params]
     ledgerTx <- submitTxConstraints (hsVaporizeInstance contractInfo) tx
@@ -49,7 +49,7 @@ findScriptUtxos startIdx affix = do
     utxos <- utxosAt hsVaporizeAddress 
     return [ (oref, o, AssetClass (hypePolicyId, tn o)) | (oref, o) <- Map.toList utxos, tn o /= ""]
     where
-        hypePolicyId = ciPolicy contractInfo
+        hypePolicyId = ciVaporPolicy contractInfo
         utxoAssets utxo = [ (cs, tn', n) | (cs, tn', n) <- Value.flattenValue (txOutValue $ toTxOut utxo), cs == hypePolicyId]
         tn utxo =
             case utxoAssets utxo of
@@ -81,9 +81,9 @@ vaporize params = do
                                     Constraints.typedValidatorLookups (hsVaporizeInstance contractInfo)                                  
                 tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Vaporize) | (oref, _, _) <- utxos]   <>
                                     mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Vaporize) | (oref, _, _) <- utxos']  <>
-                                    Constraints.mustPayToPubKey pkh (Value.singleton (ciPolicy contractInfo) "HYPESKULL0001" 1)                             <>
+                                    Constraints.mustPayToPubKey pkh (Value.singleton (ciOriginPolicy contractInfo) "HYPESKULL0001" 1)                             <>
                                     Constraints.mustPayToPubKey (ciAdminPKH contractInfo) 
-                                        (Value.singleton (ciPolicy contractInfo) (fst $ vpVTToken params) 1 <> Ada.lovelaceValueOf (amt * 1_000_000))                     <>   
+                                        (Value.singleton (ciVaporPolicy contractInfo) (fst $ vpVTToken params) 1 <> Ada.lovelaceValueOf (amt * 1_000_000))                     <>   
                                     mconcat [Constraints.mustPayToTheScript 
                                             (PTDatum $ amt + 10) 
                                             (Value.singleton cs tn 1 <> Ada.lovelaceValueOf minUtxoLovelace) 
@@ -114,7 +114,7 @@ deliver params = do
                                     Constraints.typedValidatorLookups (hsVaporizeInstance contractInfo)                                  
                 tx              =   mconcat [Constraints.mustSpendScriptOutput oref (Redeemer $ PlutusTx.toBuiltinData Deliver) | (oref, _, _) <- utxos]    <>
                                     Constraints.mustPayToPubKey (dpVaporizeePKH params) 
-                                        (Value.singleton (ciPolicy contractInfo) (fst $ dpVaporizedSkull params) 1                          <> 
+                                        (Value.singleton (ciVaporPolicy contractInfo) (fst $ dpVaporizedSkull params) 1                          <> 
                                         Ada.lovelaceValueOf (ciMinUtxoLovelace contractInfo))                                                               <>   
                                     mconcat [Constraints.mustPayToTheScript 
                                             (snd $ dpVaporizedSkull params)

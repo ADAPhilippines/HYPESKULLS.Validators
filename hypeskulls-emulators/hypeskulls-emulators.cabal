@@ -34,6 +34,7 @@ library
                         HSVTClaimOffchain
                         HSVaporizeEmulator
                         HSVaporizeOffchain
+                        HSShuffler
     
     if flag(unexpected_thunks)
       cpp-options: -DUNEXPECTED_THUNKS

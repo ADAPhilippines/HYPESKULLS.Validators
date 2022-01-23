@@ -3,6 +3,7 @@ packages:
     hypeskulls-validators
     hypeskulls-emulators
     hypeskulls-compiler
+    hypeskulls-shuffler
 
 package cryptonite
   -- Using RDRAND instead of /dev/urandom as an entropy source for key

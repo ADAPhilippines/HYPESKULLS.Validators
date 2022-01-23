@@ -32,8 +32,11 @@ import              HSVaporizeCommon
 import qualified    GHC.OldList as L (findIndex) 
 
 
-sHSCS :: CurrencySymbol
-sHSCS = HSVTClaimCommon.ciPolicy HSVTClaimCommon.contractInfo
+vaporCS :: CurrencySymbol
+vaporCS = HSVTClaimCommon.ciVaporPolicy HSVTClaimCommon.contractInfo
+
+originCS :: CurrencySymbol
+originCS = HSVTClaimCommon.ciOriginPolicy HSVTClaimCommon.contractInfo
 
 nonce :: BuiltinByteString
 nonce = ciNonce HSVTClaimCommon.contractInfo  
@@ -53,24 +56,24 @@ runEmulator = do
 
     v1 :: Value
     v1 =    defLovelace                                             <>
-            Value.singleton sHSCS "HYPESKULL0001_SH"        1       <>
-            Value.singleton sHSCS "HYPESKULL0002_SH"        1       <>
-            Value.singleton sHSCS "HYPESKULLS_VRT_0001"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VRT_1072"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_A_C"       1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_Z_E"       1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS"   1       <>
-            Value.singleton sHSCS "HYPESKULL0001_MK_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULL0001_SP_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_PT"           1  
+            Value.singleton vaporCS "HYPESKULL0001_SH"        1       <>
+            Value.singleton vaporCS "HYPESKULL0002_SH"        1       <>
+            Value.singleton vaporCS "HYPESKULLS_VRT_0001"     1       <>
+            Value.singleton vaporCS "HYPESKULLS_VRT_1072"     1       <>
+            Value.singleton vaporCS "HYPESKULLS_VT_SP_EE"     1       <>
+            Value.singleton vaporCS "HYPESKULLS_VT_MK_EE"     1       <>
+            Value.singleton vaporCS "HYPESKULLS_VT_A_C"       1       <>
+            Value.singleton vaporCS "HYPESKULLS_VT_Z_E"       1       <>
+            Value.singleton vaporCS "HYPESKULLS_VT_NUGGETS"   1       <>
+            Value.singleton vaporCS "HYPESKULL0001_MK_EE"     1       <>
+            Value.singleton vaporCS "HYPESKULL0001_SP_EE"     1       <>
+            Value.singleton vaporCS "HYPESKULLS_PT"           1  
 
     v2 :: Value
     v2 = defLovelace                                                <>
-            Value.singleton sHSCS "HYPESKULL0001"           1       <>
-            Value.singleton sHSCS "HYPESKULL0002"           1       <>
-            Value.singleton sHSCS "HYPESKULLSRESURRECTION"  2       
+            Value.singleton originCS "HYPESKULL0001"           1       <>
+            Value.singleton originCS "HYPESKULL0002"           1       <>
+            Value.singleton originCS "HYPESKULLSRESURRECTION"  2       
 
     myTrace :: EmulatorTrace ()
     myTrace = do
@@ -121,26 +124,27 @@ runE2EEmulator = do
 
     v1 :: Value
     v1 =    defLovelace                                             <>
-            Value.singleton sHSCS "HYPESKULL0001_SH"        2       <>
-            Value.singleton sHSCS "HYPESKULLS_VRT_0057"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VRT_1072"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_AD_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_M_C"       1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_NUGGETS"   1       <>
-            Value.singleton sHSCS "HYPESKULL0001_M_C"     1       <>
-            Value.singleton sHSCS "HYPESKULL0001_AD_EE"     1       <>
-            Value.singleton sHSCS "HYPESKULLS_PT"           1        
+            Value.singleton vaporCS "HYPESKULL0001_SH"        2     <>
+            Value.singleton vaporCS "HYPESKULLS_VRT_0057"     1     <>
+            Value.singleton vaporCS "HYPESKULLS_VRT_1072"     1     <>
+            Value.singleton vaporCS "HYPESKULLS_VT_AD_EE"     1     <>
+            Value.singleton vaporCS "HYPESKULLS_VT_M_C"       1     <>
+            Value.singleton vaporCS "HYPESKULLS_VT_NUGGETS"   1     <>
+            Value.singleton vaporCS "HYPESKULL0001_M_C"       1     <>
+            Value.singleton vaporCS "HYPESKULL0001_AD_EE"     1     <>
+            Value.singleton vaporCS "HYPESKULL0001_AD_C"      1     <>
+            Value.singleton vaporCS "HYPESKULLS_PT"           1        
 
     v2 :: Value
     v2 =    Ada.lovelaceValueOf 500_000_000                         <>
-            Value.singleton sHSCS "HYPESKULL0001"           1       <>
-            Value.singleton sHSCS "HYPESKULLSRESURRECTION"  1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_M_C"       1       
+            Value.singleton originCS "HYPESKULL0001"           1    <>
+            Value.singleton originCS "HYPESKULLSRESURRECTION"  1    <>
+            Value.singleton vaporCS "HYPESKULLS_VT_M_C"        1       
 
     v3 :: Value
     v3 =    Ada.lovelaceValueOf 500_000_000                         <>
-            Value.singleton sHSCS "HYPESKULL0001"           1       <>
-            Value.singleton sHSCS "HYPESKULLS_VT_SP_EE"     1                  
+            Value.singleton originCS "HYPESKULL0001"           1    <>
+            Value.singleton vaporCS "HYPESKULLS_VT_SP_EE"      1                  
 
     myTrace :: EmulatorTrace ()
     myTrace = do
@@ -193,12 +197,12 @@ runE2EEmulator = do
         void $ Emulator.waitNSlots  1
         callEndpoint @"deliver"     hVaporize1 DeliverParams
             { dpVaporizeePKH        = "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd"
-            , dpVaporizedSkull      = ("HYPESKULL0001_AD_EE", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" 4100 4100))
+            , dpVaporizedSkull      = ("HYPESKULL0001_AD_C", HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" 4100 4097))
             }
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         hVaporize1 ()
         void $ Emulator.waitNSlots  1
-        -- callEndpoint @"withdraw"    hVaporize1 ()
+        callEndpoint @"withdraw"    hVaporize1 ()
         void $ Emulator.waitNSlots  1
         callEndpoint @"log"         hVaporize1 ()
         void $ Emulator.waitNSlots  1

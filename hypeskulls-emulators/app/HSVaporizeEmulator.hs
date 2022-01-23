@@ -23,8 +23,11 @@ import              HSVaporizeOffchain
 import              HSVaporizeCommon
 
 
-sHSCS :: CurrencySymbol
-sHSCS = ciPolicy contractInfo
+vaporCS :: CurrencySymbol
+vaporCS = HSVaporizeCommon.ciVaporPolicy HSVaporizeCommon.contractInfo
+
+originCS :: CurrencySymbol
+originCS = HSVaporizeCommon.ciOriginPolicy HSVaporizeCommon.contractInfo
 
 
 wallet :: Integer -> Wallet
@@ -41,15 +44,15 @@ runEmulator = do
     defLovelace = Ada.lovelaceValueOf 50_000_000
 
     v1 :: Value
-    v1 =    defLovelace                                         <>
-            Value.singleton sHSCS "SH_HYPESKULL0001"        1   <>
-            Value.singleton sHSCS "VAPOR_PT_001"            1   <>
-            Value.singleton sHSCS "HYPESKULL0001_MK_EE"     1       
+    v1 =    defLovelace                                           <>
+            Value.singleton vaporCS "SH_HYPESKULL0001"        1   <>
+            Value.singleton vaporCS "VAPOR_PT_001"            1   <>
+            Value.singleton vaporCS "HYPESKULL0001_MK_EE"     1       
 
     v2 :: Value
-    v2 = defLovelace                                            <>
-            Value.singleton sHSCS "HYPESKULL0001"           1   <>
-            Value.singleton sHSCS "HYPESKULLS_VT_MK_EE"     1
+    v2 = defLovelace                                              <>
+            Value.singleton originCS "HYPESKULL0001"           1  <>
+            Value.singleton vaporCS "HYPESKULLS_VT_MK_EE"      1
 
     myTrace :: EmulatorTrace ()
     myTrace = do

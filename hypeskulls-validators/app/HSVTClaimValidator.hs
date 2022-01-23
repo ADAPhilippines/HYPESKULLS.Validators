@@ -84,7 +84,7 @@ mkValidator ContractInfo{..} datum r ctx =
                 Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
 
         mrkrTN :: TokenName
-        mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciPolicy] in
+        mrkrTN = let !os = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue ownInputValue, cs == ciVaporPolicy] in
                 case os of
                     [(_, tn, _)]    -> tn
                     _               -> TokenName emptyByteString
@@ -93,11 +93,11 @@ mkValidator ContractInfo{..} datum r ctx =
         isMrkrValid startIdx bs = bs == P.sliceByteString startIdx (lengthOfByteString bs) (unTokenName mrkrTN)
 
         hasMatchingOSHYPESKULL :: Bool
-        hasMatchingOSHYPESKULL = assetClassValueOf (valuePaidTo info sig) (AssetClass (ciPolicy, tn')) == 1
+        hasMatchingOSHYPESKULL = assetClassValueOf (valuePaidTo info sig) (AssetClass (ciOriginPolicy, tn')) == 1
                     where tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName mrkrTN
 
         isMarkerNFTDisposed :: Bool
-        isMarkerNFTDisposed = assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciPolicy, mrkrTN)) == 1
+        isMarkerNFTDisposed = assetClassValueOf (valuePaidTo info ciAdminPKH) (AssetClass (ciVaporPolicy, mrkrTN)) == 1
 
         isMinUtxoLovelaceReturned :: Integer -> Bool
         isMinUtxoLovelaceReturned n = n * ciMinUtxoLovelace <= Ada.getLovelace (Ada.fromValue $ valuePaidTo info ciAdminPKH)
@@ -120,7 +120,7 @@ mkValidator ContractInfo{..} datum r ctx =
                                             !flatVal = Value.flattenValue outVal
                                         in 
                                         (2 == length flatVal) &&&
-                                        (AssetCount (ciPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- flatVal]) &&&
+                                        (AssetCount (ciVaporPolicy, mrkrTN, 1) `elem` [ AssetCount x | x <- flatVal]) &&&
                                         (AssetCount (Ada.adaSymbol, Ada.adaToken, ciMinUtxoLovelace) `elem` [ AssetCount x | x <- flatVal])
                                     ]
 
@@ -151,7 +151,7 @@ mkValidator ContractInfo{..} datum r ctx =
             where
                 disposedShadowHSs = [   (cs, tn, n) 
                                     |   (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH)
-                                    ,   cs == ciPolicy
+                                    ,   cs == ciVaporPolicy
                                     ,   ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn)
                                     ]
 
@@ -166,7 +166,7 @@ mkValidator ContractInfo{..} datum r ctx =
             case datum of
                 VTDatum hash -> mbTN
                     where
-                        hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH), cs == ciPolicy]
+                        hypeNFTsSpent = [ (cs, tn, n) | (cs, tn, n) <- Value.flattenValue (valuePaidTo info ciAdminPKH), cs == ciVaporPolicy]
                         matchingVRT = filter (\(_,tn,_) -> hash == sha2_256 (unTokenName tn P.<> "_" P.<> ciNonce)) hypeNFTsSpent
                         mbTN =
                             case matchingVRT of
@@ -179,7 +179,7 @@ mkValidator ContractInfo{..} datum r ctx =
             case getMatchingVRTTN of
                 Nothing -> Nothing
                 Just tn ->
-                    case [ o | TxInInfo _ o <- txInfoInputs info, valueOf (txOutValue o) ciPolicy tn == 1 ] of
+                    case [ o | TxInInfo _ o <- txInfoInputs info, valueOf (txOutValue o) ciVaporPolicy tn == 1 ] of
                         [o] -> Just o
                         _   -> Nothing
 

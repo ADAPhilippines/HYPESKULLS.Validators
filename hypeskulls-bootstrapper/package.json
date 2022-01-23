@@ -1,0 +1,21 @@
+{
+  "name": "hypeskulls.vapor.bootstrapper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "App.ts",
+  "scripts": {
+    "start": "ts-node App.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^17.0.10",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "@blockfrost/blockfrost-js": "^4.0.1",
+    "@microsoft/signalr": "^6.0.1",
+    "bip39": "^3.0.4"
+  }
+}
