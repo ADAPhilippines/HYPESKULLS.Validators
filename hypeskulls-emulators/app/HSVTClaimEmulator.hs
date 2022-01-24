@@ -125,7 +125,7 @@ runE2EEmulator = do
     v1 :: Value
     v1 =    defLovelace                                             <>
             Value.singleton vaporCS "HYPESKULL0001_SH"        2     <>
-            Value.singleton vaporCS "HYPESKULLS_VRT_0057"     1     <>
+            Value.singleton vaporCS "HYPESKULLS_VRT_0830"     1     <>
             Value.singleton vaporCS "HYPESKULLS_VRT_1072"     1     <>
             Value.singleton vaporCS "HYPESKULLS_VT_AD_EE"     1     <>
             Value.singleton vaporCS "HYPESKULLS_VT_M_C"       1     <>
@@ -155,9 +155,9 @@ runE2EEmulator = do
         void $ Emulator.waitNSlots 1
         callEndpoint @"setup" hVTClaim1 VTClaim.SetupParams
             { spShadowHSTN  = "HYPESKULL0001_SH"
-            , spVRTs        =   [ ("HYPESKULLS_VRT_0057", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))]
-            , spVTs         =   [ ("HYPESKULLS_VT_AD_EE", VTDatum $ sha2_256 ("HYPESKULLS_VRT_0057" <> "_" <> nonce))
-                                , ("HYPESKULLS_VT_M_C", VTDatum $ sha2_256 ("HYPESKULLS_VRT_0057" <> "_" <> nonce))
+            , spVRTs        =   [ ("HYPESKULLS_VRT_0830", VRTDatum (ciDefaultVRTOwner HSVTClaimCommon.contractInfo))]
+            , spVTs         =   [ ("HYPESKULLS_VT_AD_EE", VTDatum $ sha2_256 ("HYPESKULLS_VRT_0830" <> "_" <> nonce))
+                                , ("HYPESKULLS_VT_M_C", VTDatum $ sha2_256 ("HYPESKULLS_VRT_0830" <> "_" <> nonce))
                                 ]
             }
         void $ Emulator.waitNSlots 1

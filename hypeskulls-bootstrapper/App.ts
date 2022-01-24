@@ -11,6 +11,12 @@ import { PlutusField, PlutusFieldType } from "./Types/PlutusField";
 import HsHelpers from "./HsHelpers";
 import { languageViews } from "./languageViews";
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
+import { HsVaporTokenType, getTokenName } from "./Types/HsVaporTokenType";
+import * as Readline from "readline";
+import * as fs from "fs";
+import csv from "csv-parser";
+import HsShufflerResultRow from "./Types/HsShufflerResultRow";
+import sha256 from 'crypto-js/sha256';
 
 const MIN_UTXO_LOVELACE = Config.MinUtxoLovelace;
 const VAPOR_POLICY_ID = Config.VaporPolicyId;
@@ -24,6 +30,9 @@ let Network: number;
 let Blockfrost: BlockFrostAPI;
 let PublicAddress: string;
 let IsConfirmingTx: boolean = false;
+let IsBootstrapping: boolean = false;
+let Interface: Readline.Interface;
+let ShufflerResult: HsShufflerResultRow[] = [];
 
 const InitializeAsync = async () => {
     await LoadCardanoAsync();
@@ -33,10 +42,24 @@ const InitializeAsync = async () => {
     });
     PublicAddress = GetPublicAddress();
 
+    Interface = Readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    Interface.on('line', async (line: string) => {
+        if(!IsBootstrapping)
+        {
+            IsBootstrapping = true;
+            var type: HsVaporTokenType = parseInt(line[0]);
+            await BootstrapContractAsync(type, 830, 830);
+        }
+    });
+
     CccSignalRConnection = new HubConnectionBuilder()
-    .withUrl("http://localhost:1338/vapor")
-    .withAutomaticReconnect()
-    .build();
+        .withUrl("http://localhost:1338/vapor")
+        .withAutomaticReconnect()
+        .build();
 
     CccSignalRConnection.serverTimeoutInMilliseconds = 120 * 1000;
 
@@ -78,6 +101,7 @@ const GetPublicAddress = () => {
 
     return enterpriseAddr.to_address().to_bech32();
 }
+
 const ToBigNum = (value: any) => Cardano.BigNum.from_str(value.toString());
 
 const GetUtxosAsync = async () => {
@@ -92,7 +116,7 @@ const GetUtxosAsync = async () => {
                 ),
                 Cardano.TransactionOutput.new(
                     Cardano.Address.from_bech32(PublicAddress), // use own address since blockfrost does not provide
-                    amountToValue(utxoResult.amount)
+                    AmountToValue(utxoResult.amount)
                 )
             )
         );
@@ -100,7 +124,7 @@ const GetUtxosAsync = async () => {
     return utxos;
 }
 
-const amountToValue = (amount: CardanoAssetResponse[]) => {
+const AmountToValue = (amount: CardanoAssetResponse[]) => {
     var lovelaceAmt = amount.find(a => a.unit == "lovelace") as CardanoAssetResponse;
     var val = Cardano.Value.new(ToBigNum(lovelaceAmt.quantity));
     for (const asset of amount.filter(a => a.unit != "lovelace")) {
@@ -135,8 +159,7 @@ const AssetValue = (lovelaceAmt: BigNum, policyIdHex: string, assetNameHex: stri
     }
 }
 
-const CreateTxBuilder = (protocolParameters: any) =>
-{
+const CreateTxBuilder = (protocolParameters: any) => {
     setCoinSelectionCardanoSerializationLib(Cardano);
     CoinSelection.setProtocolParameters(
         protocolParameters.min_utxo.toString(),
@@ -144,7 +167,7 @@ const CreateTxBuilder = (protocolParameters: any) =>
         protocolParameters.min_fee_b.toString(),
         protocolParameters.max_tx_size.toString()
     );
-    
+
     const txBuilder = Cardano.TransactionBuilder.new(
         Cardano.LinearFee.new(
             ToBigNum(protocolParameters.min_fee_a),
@@ -163,22 +186,46 @@ const CreateTxBuilder = (protocolParameters: any) =>
     return txBuilder;
 }
 
-const BootstrapShadowHsAsync = async () =>
+const LoadShufflerDataAsync = () =>
 {
-    var startIdx = 1;
-    var endIdx = 150;
-    while(startIdx < endIdx)
-    {
-        startIdx = await SendBootstrapShadowHsTxAsync(startIdx, endIdx);
-        while(IsConfirmingTx)
-        {
+    return new Promise<void>((resolve, reject) => {
+        fs.createReadStream('shuffled.tsv')
+        .pipe(csv({ separator: "\t"}))
+        .on('data', (data) => ShufflerResult.push({
+            VrtTokenName: data.VRT,
+            VtTokenName1: data.VT1,
+            VtTokenName2: data.VT2
+        }))
+        .on('end', () => {
+            resolve();
+        });
+    });
+}
+
+const BootstrapContractAsync = async (tokenType: HsVaporTokenType, startIdx: number, endIdx: number) => {
+    console.log(`Bootstrapping ${startIdx} - ${endIdx} ${getTokenName(tokenType)}s tokens.`);
+    while (startIdx <= endIdx) {
+        switch (tokenType) {
+            case HsVaporTokenType.VtClaimShadowHs:
+                startIdx = await SendBootstrapShadowHsTxAsync(startIdx, endIdx);
+                break;
+            case HsVaporTokenType.VtClaimVrt:
+                startIdx = await SendBootstrapVrtTxAsync(startIdx, endIdx);
+                break;
+            case HsVaporTokenType.VtClaimVt:
+                await LoadShufflerDataAsync();
+                startIdx = await SendBootstrapVtTxAsync(startIdx, endIdx);
+                break;
+            default:
+                break;
+        }
+        while (IsConfirmingTx || true) {
             await Helpers.WaitFor(15000);
         }
     }
 }
 
-const SendBootstrapShadowHsTxAsync = async (startIdx: number = 1, endIdx: number = 30) =>
-{
+const SendBootstrapShadowHsTxAsync = async (startIdx: number = 1, endIdx: number = 30) => {
     const latestBlock = await Blockfrost.blocksLatest();
     const protocolParameters = await Blockfrost.epochsParameters(latestBlock.epoch as number);
     const shDatumObject = VTClaimShDatum() as PlutusDataObject;
@@ -189,7 +236,7 @@ const SendBootstrapShadowHsTxAsync = async (startIdx: number = 1, endIdx: number
     var tokenIdx: number = startIdx;
     var transaction: Transaction | undefined;
     var transactionOutputs: TransactionOutput[] = [];
-    while(tokenIdx <= endIdx) {
+    while (tokenIdx <= endIdx) {
         const shOutput = Cardano.TransactionOutput.new(
             VtClaimContractAddress() as Address,
             GetHypeNftsOutput([HsHelpers.GetShadowHsTokenName(tokenIdx).substring(56)]) as Value
@@ -197,12 +244,11 @@ const SendBootstrapShadowHsTxAsync = async (startIdx: number = 1, endIdx: number
         shOutput.set_data_hash(shDatumHash);
 
         var tx = ConstructTx(utxos, transactionOutputs.concat([shOutput]), protocolParameters);
-        
-        if(tokenIdx % 5 == 0)
-            console.log("current tx size: ", tx ? tx.to_bytes().length : 0);
 
-        if(tx != null && (tx as Transaction).to_bytes().length < protocolParameters.max_tx_size)
-        {
+        if (tokenIdx % 5 == 0)
+            console.log("Current tx size: ", tx ? tx.to_bytes().length : 0);
+
+        if (tx != null && (tx as Transaction).to_bytes().length < protocolParameters.max_tx_size) {
             transaction = tx;
             transactionOutputs.push(shOutput);
             tokenIdx++;
@@ -214,9 +260,103 @@ const SendBootstrapShadowHsTxAsync = async (startIdx: number = 1, endIdx: number
     console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
     console.log(`Submiting Tx for Shadow Hypeskulls ${startIdx} - ${tokenIdx - 1}`);
 
-    CccSignalRConnection.send("SubmitVTClaimTx", 
-        Helpers.ToHex((transaction as Transaction).to_bytes()), 
+    CccSignalRConnection.send("SubmitVTClaimTx",
+        Helpers.ToHex((transaction as Transaction).to_bytes()),
         [shDatumObject]
+    );
+    IsConfirmingTx = true;
+    return tokenIdx;
+}
+
+const SendBootstrapVrtTxAsync = async (startIdx: number = 1, endIdx: number = 30) => {
+    const latestBlock = await Blockfrost.blocksLatest();
+    const protocolParameters = await Blockfrost.epochsParameters(latestBlock.epoch as number);
+
+    const vrtDatumObject = VTClaimVrtDatum("") as PlutusDataObject;
+    const vrtDatumHash = Cardano.hash_plutus_data(ToPlutusData(vrtDatumObject) as PlutusData);
+
+    const utxos = await GetUtxosAsync();
+
+    var tokenIdx: number = startIdx;
+    var transaction: Transaction | undefined;
+    var transactionOutputs: TransactionOutput[] = [];
+    while (tokenIdx <= endIdx) {
+        const vrtOutput = Cardano.TransactionOutput.new(
+            VtClaimContractAddress() as Address,
+            GetHypeNftsOutput([HsHelpers.GetVrtTokenName(tokenIdx).substring(56)]) as Value
+        );
+        vrtOutput.set_data_hash(vrtDatumHash);
+
+        var tx = ConstructTx(utxos, transactionOutputs.concat([vrtOutput]), protocolParameters);
+
+        if (tokenIdx % 10 == 0)
+            console.log("current tx size: ", tx ? tx.to_bytes().length : 0);
+
+        if (tx != null && (tx as Transaction).to_bytes().length < protocolParameters.max_tx_size) {
+            transaction = tx;
+            transactionOutputs.push(vrtOutput);
+            tokenIdx++;
+        }
+        else
+            break;
+    }
+
+    console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
+    console.log(`Submiting Tx for Hypeskulls VRT: ${startIdx} - ${tokenIdx - 1}`);
+
+    CccSignalRConnection.send("SubmitVTClaimTx",
+        Helpers.ToHex((transaction as Transaction).to_bytes()),
+        [vrtDatumObject]
+    );
+    IsConfirmingTx = true;
+    return tokenIdx;
+}
+
+const SendBootstrapVtTxAsync = async (startIdx: number = 0, endIdx: number = 30) => {
+    const latestBlock = await Blockfrost.blocksLatest();
+    const protocolParameters = await Blockfrost.epochsParameters(latestBlock.epoch as number);
+
+    const utxos = await GetUtxosAsync();
+
+    var tokenIdx: number = startIdx;
+    var transaction: Transaction | undefined;
+    var transactionOutputs: TransactionOutput[] = [];
+    var datumObjects: PlutusDataObject[] = [];
+    while (tokenIdx <= endIdx) {
+        var shufflerResultRow = ShufflerResult[tokenIdx - 1];
+        const vtDatumObject = VTClaimVtDatum(sha256(`${shufflerResultRow.VrtTokenName}_${Config.VtClaimNonce}`).toString());
+        const vtDatumHash = Cardano.hash_plutus_data(ToPlutusData(vtDatumObject));
+
+        const vtOutput = Cardano.TransactionOutput.new(
+            VtClaimContractAddress() as Address,
+            GetHypeNftsOutput([
+                Helpers.AsciiToHex(shufflerResultRow.VtTokenName1),
+                Helpers.AsciiToHex(shufflerResultRow.VtTokenName2)
+            ])
+        );
+        vtOutput.set_data_hash(vtDatumHash);
+
+        var tx = ConstructTx(utxos, transactionOutputs.concat([vtOutput]), protocolParameters);
+
+        if (tokenIdx % 10 == 0)
+            console.log("current tx size: ", tx ? tx.to_bytes().length : 0);
+
+        if (tx != null && (tx as Transaction).to_bytes().length < protocolParameters.max_tx_size) {
+            datumObjects.push(vtDatumObject);
+            transaction = tx;
+            transactionOutputs.push(vtOutput);
+            tokenIdx++;
+        }
+        else
+            break;
+    }
+
+    console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
+    console.log(`Submiting Tx for Hypeskulls VRT: ${startIdx} - ${tokenIdx - 1}`);
+
+    CccSignalRConnection.send("SubmitVTClaimTx",
+        Helpers.ToHex((transaction as Transaction).to_bytes()),
+        datumObjects
     );
     IsConfirmingTx = true;
     return tokenIdx;
@@ -234,10 +374,8 @@ const WaitTxConfirmedAsync = async (txId: string) => {
     }
 }
 
-const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutput[], protocolParameters: any) =>
-{
-    try
-    {
+const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutput[], protocolParameters: any) => {
+    try {
         const txBuilder = CreateTxBuilder(protocolParameters);
         const selfAddress = Cardano.Address.from_bech32(PublicAddress);
         const transactionWitnessSet = Cardano.TransactionWitnessSet.new();
@@ -277,41 +415,36 @@ const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutp
         const signedTx = SignTx(transaction);
         return signedTx;
     }
-    catch (error)
-    {
+    catch (error) {
         console.error(error);
         return null;
     }
 }
 
 const SignTx = (tx: Transaction) => {
-    const rootKey = getRootKey(Helpers.GetEntropy(seed_mnemonic));
-	const prvKey = Helpers.GetPrivateKey(rootKey);
-	const txBody = tx.body();
-	const txHash = Cardano.hash_transaction(txBody);
-	const witnesses = tx.witness_set();
+    const rootKey = GetRootKey(Helpers.GetEntropy(seed_mnemonic));
+    const prvKey = Helpers.GetPrivateKey(rootKey);
+    const txBody = tx.body();
+    const txHash = Cardano.hash_transaction(txBody);
+    const witnesses = tx.witness_set();
 
-	// add keyhash witnesses
-	const vkeyWitnesses = Cardano.Vkeywitnesses.new();
-	const vkeyWitness = Cardano.make_vkey_witness(txHash, prvKey);
-	vkeyWitnesses.add(vkeyWitness);
-	witnesses.set_vkeys(vkeyWitnesses);
+    // add keyhash witnesses
+    const vkeyWitnesses = Cardano.Vkeywitnesses.new();
+    const vkeyWitness = Cardano.make_vkey_witness(txHash, prvKey);
+    vkeyWitnesses.add(vkeyWitness);
+    witnesses.set_vkeys(vkeyWitnesses);
 
-	// create the finalized transaction with witnesses
-	return Cardano.Transaction.new(
-		txBody,
-		witnesses
-	);
+    // create the finalized transaction with witnesses
+    return Cardano.Transaction.new(
+        txBody,
+        witnesses
+    );
 }
-
-const getRootKey = (entropy: string) => {
-	return Cardano.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, 'hex'), Buffer.from(''));
-};
 
 const GetHypeNftsOutput = (assetNames: string[], lovelace: number = 0, isVapor: boolean = true) => {
     var lovelaceAmt = lovelace > MIN_UTXO_LOVELACE ? lovelace : MIN_UTXO_LOVELACE;
     let val = Cardano.Value.new(ToBigNum(lovelaceAmt));
-    assetNames.forEach(n => 
+    assetNames.forEach(n =>
         val = val.checked_add(AssetValue(
             ToBigNum(0),
             isVapor ? VAPOR_POLICY_ID : ORIGIN_POLICY_ID,
@@ -323,13 +456,43 @@ const GetHypeNftsOutput = (assetNames: string[], lovelace: number = 0, isVapor: 
 
 const VtClaimContractAddress = () => Cardano.Address.from_bech32(Config.VtClaimContractAddress);
 
+//#region Datum Builders
 const VTClaimShDatum = () => {
     const datum = new PlutusDataObject(0);
-    datum.Fields = []
-    return datum
+    datum.Fields = [];
+    return datum;
 }
 
-function ToPlutusData (plutusDataObj: PlutusDataObject) {
+const VTClaimVrtDatum = (pkh: string = "") => {
+    const datum = new PlutusDataObject(1);
+    datum.Fields = [
+        {
+            Index: 1,
+            Type: PlutusFieldType.Bytes,
+            Key: "pkh",
+            Value: pkh
+        } as PlutusField
+    ];
+    return datum;
+}
+
+const VTClaimVtDatum = (hash: string = "") => {
+    const datum = new PlutusDataObject(2);
+    datum.Fields = [
+        {
+            Index: 2,
+            Type: PlutusFieldType.Bytes,
+            Key: "vrtHash",
+            Value: hash
+        } as PlutusField
+    ];
+    return datum;
+}
+//#endregion
+
+
+//#region Plutus Data Helpers
+function ToPlutusData(plutusDataObj: PlutusDataObject) {
     const datumFields = Cardano.PlutusList.new();
     plutusDataObj.Fields.sort((a, b) => a.Index - b.Index);
     plutusDataObj.Fields.forEach(f => {
@@ -344,7 +507,7 @@ function ToPlutusData (plutusDataObj: PlutusDataObject) {
     );
 }
 
-function PlutusFieldToPlutusData (field: PlutusField) {
+function PlutusFieldToPlutusData(field: PlutusField) {
     let plutusData: PlutusData | undefined = undefined;
     switch (field.Type) {
         case PlutusFieldType.Integer:
@@ -367,12 +530,16 @@ function PlutusFieldToPlutusData (field: PlutusField) {
 
     return plutusData;
 }
+//#endregion 
 
 const Main = async () => {
+    console.log("H.Y.P.E. VAPOR Bootstrapper Started!");
     await InitializeAsync();
-    console.log(PublicAddress);
-    // await BootstrapShadowHsAsync();
-    console.log(HsHelpers.GetShHsMintString(1,20));
+    await Helpers.WaitFor(1000);
+    console.log("Bootstrapper Wallet Addres: ", PublicAddress);
+    console.log("VTClaim Contract Addres: ", Config.VtClaimContractAddress);
+    console.log("Select Token Type To Bootstrap:");
+    console.log("0 - VTClaim Shadow HS Tokens |  1 - VTClaim VRT Tokens | 2 - VTClaim VT Tokens");
 }
 
 Main();

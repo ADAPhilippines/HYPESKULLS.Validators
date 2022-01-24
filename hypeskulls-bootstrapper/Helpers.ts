@@ -6,6 +6,8 @@ class Helpers {
 
     static ToHex = (bytes: Uint8Array) => Buffer.from(bytes).toString("hex");
 
+    static AsciiToHex = (ascii: string) => Helpers.ToHex(Buffer.from(ascii, "ascii"));
+
     static Harden = (num: number) => 0x80000000 + num;
 
     static GenerateMnemonic = () => bip39.generateMnemonic(256);
