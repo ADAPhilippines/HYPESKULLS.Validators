@@ -7,7 +7,6 @@ using HSVapor.Minter.Model;
 namespace HSVapor.Minter;
 class Program
 {
-	
 	const bool ON_MAINNET = false;
 	const string NETWORK = ON_MAINNET ? "--mainnet" : "--testnet-magic 1097911063";
 	const string WORKING_DIRECTORY = "../../../../mint_test/";
@@ -32,18 +31,18 @@ class Program
 	const string TX_RAW = "matx.raw";
 	const string TX_SIGNED = "matx.signed";
 
-	const uint MIN_UTXO_VAPOR_TOKEN = 6_000_000;
+	const ulong MIN_UTXO_VAPOR_TOKEN = 6_000_000;
 	const int TX_OUT_BATCH_VAPOR_TOKEN = 30;
 
-	const uint MIN_UTXO_SH_TOKEN = 14_000_000;
+	const ulong MIN_UTXO_SH_TOKEN = 14_000_000;
 	const int TX_BATCH_SH_TOKEN = 400;
 	const int TX_OUT_BATCH_SH_TOKEN = 100;
 
-	const uint MIN_UTXO_VRT_TOKEN = 15_000_000;
+	const ulong MIN_UTXO_VRT_TOKEN = 15_000_000;
 	const int TX_BATCH_VRT_TOKEN= 300;
 	const int TX_OUT_BATCH_VRT_TOKEN = 100;
 
-	const uint MIN_UTXO_PT_TOKEN = 2_000_000;
+	const int MIN_UTXO_PT_TOKEN = 2_000_000;
 	const int TX_BATCH_PT_TOKEN= 1;
 	const int TX_OUT_BATCH_PT_TOKEN = 1;
 
@@ -51,7 +50,7 @@ class Program
 	{
 		var policyId = (await File.ReadAllTextAsync(Path.Combine(WORKING_DIRECTORY, POLICY_ID_PATH))).Trim();
 
-		var outWalletAddress = "addr_test1qry4w72z3859nz8n4txrxqr0tngwe29f9faqrchxu4ps8u7e2dvqycessy32jvdvlmkjaazevlzl2psv7l9tq9kexl0qkhlg3m";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
+		var outWalletAddress = "addr_test1qqg5q528cac7dzdpyg3ypktc3kquhsgtlq00rruqan3dqrpewh7z9ypn24ne50gxuj3uufrukmpaee02nuuevr9egc8qgevk0k";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
 		if (outWalletAddress is null) return;
 
 		var inWalletAddress = await GetWalletAddressAsync(WALLET_IN_ADDR_PATH);
@@ -63,7 +62,7 @@ class Program
 			return;
 		}
 
-		//await MintVaporAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VAPOR_TOKEN);
+		await MintVaporAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VAPOR_TOKEN);
 
 		/**
 			Utility tokens for HYPE Vapor Contracts:
@@ -73,14 +72,13 @@ class Program
 			where XXXX means zero padded number string from 0 - 1500
 		**/
 		
-		// var nativeAssetsToMintSh = new List<NativeAsset>();
-		// for (int i = 1; i <= 1500; i++)
-		// {
-		// 	nativeAssetsToMintSh.Add(new NativeAsset($"HYPESKULL{i:0000}_SH", 1));
-		// }
-		// await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_SH_TOKEN, nativeAssetsToMintSh, TX_BATCH_SH_TOKEN, TX_OUT_BATCH_SH_TOKEN);
+		var nativeAssetsToMintSh = new List<NativeAsset>();
+		for (int i = 1; i <= 1500; i++)
+		{
+			nativeAssetsToMintSh.Add(new NativeAsset($"HYPESKULL{i:0000}_SH", 1));
+		}
+		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_SH_TOKEN, nativeAssetsToMintSh, TX_BATCH_SH_TOKEN, TX_OUT_BATCH_SH_TOKEN);
 
-		
 		var nativeAssetsToMintVrt = new List<NativeAsset>();
 		for (int i = 1; i <= 1500; i++)
 		{
@@ -88,14 +86,14 @@ class Program
 		}
 		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VRT_TOKEN, nativeAssetsToMintVrt, TX_BATCH_VRT_TOKEN, TX_OUT_BATCH_VRT_TOKEN);
 
-		
 		var nativeAssetsToMintPt = new List<NativeAsset> 
 		{
 			new NativeAsset("HYPESKULLS_PT", 100)
 		};
 		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_PT_TOKEN, nativeAssetsToMintPt, TX_BATCH_PT_TOKEN, TX_OUT_BATCH_PT_TOKEN);
 	}
-	static async Task MintVaporUtilityTokenAsync(string policyId, string inWalletAddress, string outWalletAddress, uint minUtxo, List<NativeAsset> nativeAssetsToMint, int batchPerTx, int batchPerTxOut)
+
+	static async Task MintVaporUtilityTokenAsync(string policyId, string inWalletAddress, string outWalletAddress, ulong minUtxo, List<NativeAsset> nativeAssetsToMint, int batchPerTx, int batchPerTxOut)
 	{
 		var totalTx = nativeAssetsToMint.Count / batchPerTx;
 		var remaninderCount = nativeAssetsToMint.Count % batchPerTx;
@@ -107,13 +105,13 @@ class Program
 			nativeAssetToMintBatches.Add(txOutNativeAssetsBatch);
 		}
 
-		if(remaninderCount is not 0)
+		if (remaninderCount is not 0)
 		{
 			var txNativeAssetsBatch = nativeAssetsToMint.GetRange(totalTx * batchPerTx, remaninderCount);
 			nativeAssetToMintBatches.Add(txNativeAssetsBatch);
 		}
 
-		foreach(var nativeAssetsBatch in nativeAssetToMintBatches)
+		foreach (var nativeAssetsBatch in nativeAssetToMintBatches)
 		{
 			Console.WriteLine($"Minting {nativeAssetsBatch.First().Name} to {nativeAssetsBatch.Last().Name}");
 			var walletUtxos = await GetAddressUtxoAsync(inWalletAddress);
@@ -141,8 +139,9 @@ class Program
 		}
 	}
 
-	static async Task MintVaporAsync(string policyId, string inWalletAddress, string outWalletAddress, uint minUtxo)
+	static async Task MintVaporAsync(string policyId, string inWalletAddress, string outWalletAddress, ulong minUtxo)
 	{
+		Console.WriteLine("Minting Vapor tokens");
 		// Read TSV File here to get total supply
 		var tsvFilePath = Path.Combine(METADATA_DIRECTORY, METADATA_TSV);
 
@@ -235,7 +234,7 @@ class Program
 		var stdOut = result.StandardOutput.ToString();
 		var stdErr = result.StandardError.ToString();
 		var utxos = new List<Utxo>();
-		if(stdErr.Length > 0)
+		if (stdErr.Length > 0)
 		{
 			Console.WriteLine("Get Utxos error Occured: ", stdErr);
 			return null;
@@ -310,7 +309,7 @@ class Program
 		var policyIdResultStdOut = policyIdResult.StandardOutput.ToString();
 		var policyIdResultStdErr = policyIdResult.StandardError.ToString();
 
-		if(policyIdResultStdErr.Length > 0) 
+		if (policyIdResultStdErr.Length > 0) 
 		{
 			Console.WriteLine($"GeneratPolicyIdAsync Error: \n{policyIdResultStdErr}");
 			return null;
@@ -343,7 +342,7 @@ class Program
 		await File.WriteAllTextAsync(Path.GetFullPath(outputMetadataOutputpath), processedContent);
 	}
 
-	static async Task<bool> CreateMintingDraftAsync(List<Utxo> inputUtxos, string changeAddress,string outAddress, uint minUtxo, string policyId, List<NativeAsset> nativeAssetsToMint, int batchPerTxOut, string? metadataPath)
+	static async Task<bool> CreateMintingDraftAsync(List<Utxo> inputUtxos, string changeAddress,string outAddress, ulong minUtxo, string policyId, List<NativeAsset> nativeAssetsToMint, int batchPerTxOut, string? metadataPath)
 	{
 		Console.WriteLine("Building minting transaction draft.");
 
@@ -365,7 +364,7 @@ class Program
 			txOutNativeAssetsArgs.Add(txOutText);
 		}
 
-		if(remaninderCount is not 0)
+		if (remaninderCount is not 0)
 		{
 			var txOutNativeAssetsBatch = nativeAssetsMintText.GetRange(totalTxOut * batchPerTxOut, remaninderCount);
 			var txtOutNativeAssetText = string.Join(" + ", txOutNativeAssetsBatch);
@@ -373,7 +372,7 @@ class Program
 			txOutNativeAssetsArgs.Add(txOutText);
 		}
 
-		uint utxoLovelaceAmount = 0;
+		ulong utxoLovelaceAmount = 0;
 		var inputTxHash = string.Empty;
 		var nativeAssetsToMintArgText = string.Join(" + ", nativeAssetsMintText);
 		foreach (var inUtxo in inputUtxos)
@@ -518,11 +517,11 @@ class Program
 
 		return isConfirmed;
 	}
+
 	static string GetHexFormattedText(string text)
 	{
 		byte[] bytes = Encoding.Default.GetBytes(text);
 		return BitConverter.ToString(bytes).Replace("-", string.Empty);
 	}
-	
 }
 
