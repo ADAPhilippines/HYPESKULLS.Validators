@@ -1,2 +1,4 @@
 **/dist-newstyle/**
 **/node_modules/**
+**/bin/**
+**/obj/**
