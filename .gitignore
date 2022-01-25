@@ -3,3 +3,5 @@
 **/seed_mnemonic.ts
 **/.DS_Store
 **/Config.ts
+**/bin/**
+**/obj/**
