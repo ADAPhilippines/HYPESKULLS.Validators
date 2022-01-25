@@ -1,0 +1,48 @@
+{
+	"721": {
+		"<policy_id>": {
+			"vtoken_0001": {
+				"vapor_type": "TEST_1",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR RADIATION COMMON",
+				"image": "ipfs://QmZfnhECkZd29ampX7rykRHMzmq8yxHeynPz84mDdaEn4i",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR RADIATION COMMON",
+						"src": "ipfs://QmVXCcbPp8GCSqRzmkvp5x3taY1Xuz9KVTXqmpiReZSQ5b"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR RADIATION COMMON",
+						"src": "ipfs://QmUFvJeuVGYMv7faCg1jDdgevn9Fi4VfkZdRqZvXtKgHni"
+					}
+				]
+			},
+			"vtoken_0002": {
+				"vapor_type": "TEST_2",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR RADIATION ELITE",
+				"image": "ipfs://QmduWzMqeYtCtEckJ8Kwr1MvD49TUeLdLBPtAHLMW4MykB",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR RADIATION ELITE",
+						"src": "ipfs://QmemXvEEuzggpBU89Dbmn2oeowAG2gFQ6ZknZG7j5WzPv8"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR RADIATION ELITE",
+						"src": "ipfs://QmUvYrsm1syY3YJtHW7dhQ9foCFs1jMMX4TDCCjgPeeura"
+					}
+				]
+			}
+		}
+	}
+}

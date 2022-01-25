@@ -1,0 +1,636 @@
+{
+	"721": {
+		"<policy_id>": {
+			"HYPESKULLS_VT_R_C": {
+				"vapor_type": "Radiation",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR RADIATION COMMON",
+				"image": "ipfs://QmPH6CCwHDPN7XzXTniuvtETV5EEfN9Vjo3xB2BuHDXif8",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR RADIATION COMMON",
+						"src": "ipfs://QmPGdsvY9zG6JeHYqGHSJEQrxqP9Qk6J4WA3jXVYT7zpAY"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR RADIATION COMMON",
+						"src": "ipfs://QmP2kAgKyZNnS366U2afybbVqCQSVN1tbc4hFQXHgUCgLU"
+					}
+				]
+			},
+			"HYPESKULLS_VT_R_EE": {
+				"vapor_type": "Radiation",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR RADIATION ELITE",
+				"image": "ipfs://QmdDK2odUaka23BSh1V39KUiRQ3vKXmMXfVsNE5m48q4KQ",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR RADIATION ELITE",
+						"src": "ipfs://QmPrUP1dLwG1GLtgyV2MD63cbh24RDbqFLvXnk8dgZVZNb"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR RADIATION ELITE",
+						"src": "ipfs://QmRuTdqWzhJkAHG2LwZ8Db1F7BYJVjhnZ3S6tqRHVpm7qR"
+					}
+				]
+			},
+			"HYPESKULLS_VT_R_E": {
+				"vapor_type": "Radiation",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR RADIATION EPIC",
+				"image": "ipfs://QmRCccmAQQLXTE1fBeZbvp2hMouLLbMCiEB9qgNQnoHL1J",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR RADIATION EPIC",
+						"src": "ipfs://QmNnx1noDzSbeRo1pmZgUT2usi3XAgUFTuLnHA84Jv4T3g"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR RADIATION EPIC",
+						"src": "ipfs://QmeMuR1Kk48nE9kcwJPSma67nCPbkTTPFxdBH93VTaxhEY"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AD_C": {
+				"vapor_type": "Adrenaline",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ADRENALINE COMMON",
+				"image": "ipfs://QmX7QS7mTc9REKEfQkmQB2dc8zW6niKgjdMnpqsYiEBChs",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ADRENALINE COMMON",
+						"src": "ipfs://QmdWuMWw7Ce6k7j8E3xtB39jtxWUCk2oyVieJ2PzKZFtE8"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ADRENALINE COMMON",
+						"src": "ipfs://QmUQLhCP2k7v1w2FP2a6nwB2zbQYMrtCNhUyqdtfBhAnzU"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AD_EE": {
+				"vapor_type": "Adrenaline",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ADRENALINE ELITE",
+				"image": "ipfs://QmRMTZwwKzkTWGex9KTHKMmyHHjuapFu3HNzHtrN6WQidZ",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ADRENALINE ELITE",
+						"src": "ipfs://QmeudapPgxEL3pkVbMS4geDpDZKzQfAsFCzSdNbkrwhVuS"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ADRENALINE ELITE",
+						"src": "ipfs://QmRgZ8fvdDJ3D9EF8t238mkx2TruHzhyebBYqoRLSkqnu2"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AD_E": {
+				"vapor_type": "Adrenaline",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ADRENALINE EPIC",
+				"image": "ipfs://Qmek19UnptYzEbX8zwoW3nTh3KvCpMoyoHcWUhAEUijiVn",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ADRENALINE EPIC",
+						"src": "ipfs://Qmf34Z6TxFVJr4W8w6r4eLyR3gq8YmmJtKm5anBeADdaDu"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ADRENALINE EPIC",
+						"src": "ipfs://QmUbDJAo364NzZR2AFXAMraFEnGGKeHzT7BeRyA9xJduar"
+					}
+				]
+			},
+			"HYPESKULLS_VT_G_C": {
+				"vapor_type": "Graphite",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR GRAPHITE COMMON",
+				"image": "ipfs://QmeUBJjYREXvWSrnDtiDas89xPA7xq8r4ouPmxfNdYnusF",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR GRAPHITE COMMON",
+						"src": "ipfs://QmRTAZkzziV3PPR2Hhzd8rBHyWwoCc1QysvhhUKHWNuEXR"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR GRAPHITE COMMON",
+						"src": "ipfs://QmTWVDjuCxM2B6NZFG3eUSiAqyDWS6dqnzhd9NNsbthRh2"
+					}
+				]
+			},
+			"HYPESKULLS_VT_G_EE": {
+				"vapor_type": "Graphite",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR GRAPHITE ELITE",
+				"image": "ipfs://QmRXdaxMFL5wUKWtsGf759rqjkUfyatMvy9R96jRccVVdV",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR GRAPHITE ELITE",
+						"src": "ipfs://QmRkJmBE5Qp2W5UkAcE2a8Vai7UVHEKp8grxGxrpPZWd8T"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR GRAPHITE ELITE",
+						"src": "ipfs://QmXzN3sW2Wp6ApArjWqxwu5wFQE6yArQdw27b2CAqRjdo4"
+					}
+				]
+			},
+			"HYPESKULLS_VT_G_E": {
+				"vapor_type": "Graphite",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR GRAPHITE EPIC",
+				"image": "ipfs://QmbG55nnsdyfBLtUhTUXsacb6c4PZjYTnvCov6AVdTE6YZ",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR GRAPHITE EPIC",
+						"src": "ipfs://QmfYJ49fuVyZLKZfArhvJ7AcBZvCRLagXjQi91HRT2q2Ny"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR GRAPHITE EPIC",
+						"src": "ipfs://Qmb8cRsBjcM2sztUu6xnk5mEHk9fuQSfTZf1qXiJzcnnMa"
+					}
+				]
+			},
+			"HYPESKULLS_VT_N_C": {
+				"vapor_type": "Nitro",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR NITRO COMMON",
+				"image": "ipfs://QmX8GTxQwB87Jb61Rtn6azoVonHHnTBfF8Qz75fGxhxn7Z",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR NITRO COMMON",
+						"src": "ipfs://QmRvp5RrHb61tZeotTyxpd5BDEUuaoRDocruxmpYgNzWJq"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR NITRO COMMON",
+						"src": "ipfs://QmTCwu55EEYn2GuUMTM9HyNjyVFfG4BNQuQYWQh5cDdw5z"
+					}
+				]
+			},
+			"HYPESKULLS_VT_N_EE": {
+				"vapor_type": "Nitro",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR NITRO ELITE",
+				"image": "ipfs://QmRnGS9KJ3N4jof58AbYtYpBECjtVf8FKGTQYbEvsX5cRL",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR NITRO ELITE",
+						"src": "ipfs://Qmab2wCbraAM4Rdv5BCNTFn5ZAWHf114rVKSdz7ZDmbmE7"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR NITRO ELITE",
+						"src": "ipfs://QmZjbBhLVg4Ed6Xyf4au5G3RfN3ohKs5yK5Ru5p1DuHHNL"
+					}
+				]
+			},
+			"HYPESKULLS_VT_N_E": {
+				"vapor_type": "Nitro",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR NITRO EPIC",
+				"image": "ipfs://QmYERsbRqaosgjPbtSdx2LNpD9nxjig5sazY4fhUFfXKVh",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR NITRO EPIC",
+						"src": "ipfs://QmbHALiU6H8NnSvH83KhLAMuXLdDmM2xFGbWNYqDBLKCSH"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR NITRO EPIC",
+						"src": "ipfs://QmYWa9HPoTvUZHW6u6wKXkbYgQxUx8H36uGq9naGRnsyUL"
+					}
+				]
+			},
+			"HYPESKULLS_VT_V_C": {
+				"vapor_type": "Venom",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR VENOM COMMON",
+				"image": "ipfs://QmaiicBN3TGQ65jM9HkNiPGYQMBapNTd6hAUwcCDnR4Vyw",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR VENOM COMMON",
+						"src": "ipfs://QmdqCZCK31149nmm8Mp7tVM2nx8dTF9wV5XpHCQeroCe3V"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR VENOM COMMON",
+						"src": "ipfs://QmeCn2xy2t5JTYBEpZR9AzFExYp3sf4Dc5M3zw25jadJQ8"
+					}
+				]
+			},
+			"HYPESKULLS_VT_V_EE": {
+				"vapor_type": "Venom",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR VENOM ELITE",
+				"image": "ipfs://QmZ7PFzhqqnq7Ut5p7XQRhBWrpckFKQteLRUUxZqXCBbpp",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR VENOM ELITE",
+						"src": "ipfs://Qmbh9sUYGtQhLj5pzsFu65b6H2GevBQ5vDcLynX5NP75Fk"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR VENOM ELITE",
+						"src": "ipfs://QmfK7V4PJKVF5yeCkGnv1z1dbziCXKVbeEJEek2MwTZbZN"
+					}
+				]
+			},
+			"HYPESKULLS_VT_V_E": {
+				"vapor_type": "Venom",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR VENOM EPIC",
+				"image": "ipfs://QmY73A6oMrASgkR8hFYnBSWWc8jbZEAwLyNK688GwuhwHV",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR VENOM EPIC",
+						"src": "ipfs://Qmdz6KNry1AskQXSscjN2G64KuDzwjLFRo1A6Pcre16YYc"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR VENOM EPIC",
+						"src": "ipfs://QmPaHDNY7pfecfwps9sSwkXT9Lo6eno6yKhzmY8dtZioED"
+					}
+				]
+			},
+			"HYPESKULLS_VT_K_C": {
+				"vapor_type": "Kerosene",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR KEROSENE COMMON",
+				"image": "ipfs://Qmb4U6aaV4xtE6nPPpvhmP11zxKWJyAftR65fDxXUs2aoB",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR KEROSENE COMMON",
+						"src": "ipfs://QmWc3AWwYRE23zvfNEFTRA5t2x5EmNb8AxnD9sHnAD8LEN"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR KEROSENE COMMON",
+						"src": "ipfs://QmTC9BnLstWqrc2yYJLq2v1JPgMtq1UDEudU3u4Rxb6Ei1"
+					}
+				]
+			},
+			"HYPESKULLS_VT_K_EE": {
+				"vapor_type": "Kerosene",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR KEROSENE ELITE",
+				"image": "ipfs://QmU5Q9U5298ipgpY6pMzZx2shzVdSUrSBEDF9C6p3SfD9z",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR KEROSENE ELITE",
+						"src": "ipfs://Qmdrx32KnTmeH3FJzpMC4ti2hyRarg3AJtmFB6kGgSsapK"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR KEROSENE ELITE",
+						"src": "ipfs://QmPPPT4Co4G6ejoCP967YosCsmRtt8StVgRudc5adfqN5c"
+					}
+				]
+			},
+			"HYPESKULLS_VT_K_E": {
+				"vapor_type": "Kerosene",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR KEROSENE EPIC",
+				"image": "ipfs://QmPFg6J42KPQ7am1Nde6ovdYeA2gmoo1Zc7tcdDgj1FkoN",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR KEROSENE EPIC",
+						"src": "ipfs://QmUN8Kz2UK8LJ2nQoP1m86Yx2Wni1CtszPBcKb6e895fKo"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR KEROSENE EPIC",
+						"src": "ipfs://QmZLHDiqxpRerz58uHBC2LPHQTtns8TxsENUwTvqB6dWjD"
+					}
+				]
+			},
+			"HYPESKULLS_VT_P_C": {
+				"vapor_type": "Psilocybin",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR PSILOCYBIN COMMON",
+				"image": "ipfs://QmS4UpFhAsow7XMDGUfiDuSCxuyJh3GiTWzdNyNbdUEK3g",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR PSILOCYBIN COMMON",
+						"src": "ipfs://QmUeQYfJs7v22rnykbzMS4zwhyfLbnKGQW1QNZQyJMMz5u"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR PSILOCYBIN COMMON",
+						"src": "ipfs://QmQ2KVmT56Jcfqtz6dU9fW4Pan9wid5SkTq9WCFg3mmTtL"
+					}
+				]
+			},
+			"HYPESKULLS_VT_P_EE": {
+				"vapor_type": "Psilocybin",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR PSILOCYBIN ELITE",
+				"image": "ipfs://QmQrgsVScN19mmHnku8fKJsr6thRy1mjPxQbSeUdt7KiXh",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR PSILOCYBIN ELITE",
+						"src": "ipfs://QmfMMmDA1VxRbLqNVixYTW3VTMcF5XG5VvEBpUsKySKXZG"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR PSILOCYBIN ELITE",
+						"src": "ipfs://QmXThv3nTp1weZTRpLfEZYue5v3zPtFVrLqRkkJEPxKg5d"
+					}
+				]
+			},
+			"HYPESKULLS_VT_P_E": {
+				"vapor_type": "Psilocybin",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR PSILOCYBIN EPIC",
+				"image": "ipfs://QmP3UVH1JJXSM2g8mSgA39acR43pW2txGNEMjKvgdefgDd",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR PSILOCYBIN EPIC",
+						"src": "ipfs://QmQ5e7MuaYsfdUQFy1wMdJRmzXLQ2pzCfjePKLwBYVUgKJ"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR PSILOCYBIN EPIC",
+						"src": "ipfs://QmQ56Q4g6Jf6qgFfGCvxC2Mh9pwb4QUHu5MotEE16GXzaj"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AC_C": {
+				"vapor_type": "Anarchy",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ANARCHY COMMON",
+				"image": "ipfs://QmZZMSdrdtAHjdjDGaXLJbt3nqqUUDjH5gqhBJTdRDT183",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ANARCHY COMMON",
+						"src": "ipfs://QmXZvVJCBK3XqSmAMpkwfaLRkoNj2QGpcJcDPURfzr9RZZ"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ANARCHY COMMON",
+						"src": "ipfs://QmPWZ8x7TZfCFmTQnd65vyX8jEXUQCTMbUiQZmzDXsEwsA"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AC_EE": {
+				"vapor_type": "Anarchy",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ANARCHY ELITE",
+				"image": "ipfs://QmPk4wmWRVBEBURAsbBiVe7UV7zavEgrDnt4MwQuXJnTpA",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ANARCHY ELITE",
+						"src": "ipfs://QmXPb2qBihJW75r4vuRwvEFAU2h2jEwH6NQUdAPsRnK2os"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ANARCHY ELITE",
+						"src": "ipfs://QmPDYT5KxaAUWR9Cxo1A2y6vUwyQyRSxmbFYSH3r4TQ7YT"
+					}
+				]
+			},
+			"HYPESKULLS_VT_AC_E": {
+				"vapor_type": "Anarchy",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR ANARCHY EPIC",
+				"image": "ipfs://QmfVN1sZGbWx7byC7xTPdyoRep7LV1AjG4NRxDqk9HVGmF",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR ANARCHY EPIC",
+						"src": "ipfs://QmRR7wGa97isyucoYLxDWTo47yoi77kVjkvB17zrouRpfn"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR ANARCHY EPIC",
+						"src": "ipfs://QmZ5PizoouY9iTE8AoRv738mm5HsxaYgiScSDfPe8V7Uc9"
+					}
+				]
+			},
+			"HYPESKULLS_VT_Z_C": {
+				"vapor_type": "Z-Virus",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR Z-VIRUS COMMON",
+				"image": "ipfs://QmPweif24Sgx6aB3A3sqp8BmmNjcaXU5m427pCmgEAn5Lk",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR Z-VIRUS COMMON",
+						"src": "ipfs://QmXomu47SRwTbaPzF5qpyazj13NkoeC8a5HXRRfNzSoBUs"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR Z-VIRUS COMMON",
+						"src": "ipfs://QmPUqU51HT5ciAAZ9LCxKJ2motk9y6aozv53aczb4CmKVS"
+					}
+				]
+			},
+			"HYPESKULLS_VT_Z_EE": {
+				"vapor_type": "Z-Virus",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR Z-VIRUS ELITE",
+				"image": "ipfs://QmTu9a6FiaUfngV9CJ76PUeKtoD14DRmAcuzmDciM82RSX",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR Z-VIRUS ELITE",
+						"src": "ipfs://QmaCTC94n3XzAjKPK2qR73fk4ThTuxtFqxh5ZC12FPiZfH"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR Z-VIRUS ELITE",
+						"src": "ipfs://QmeD7yAj73gLGkRuqdtCogJn7YL6QE8GEpg1wNhPyXkS6g"
+					}
+				]
+			},
+			"HYPESKULLS_VT_Z_E": {
+				"vapor_type": "Z-Virus",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR Z-VIRUS EPIC",
+				"image": "ipfs://Qmd6CRxEdsFgic5frBHDRasiM6qWh3Bys7xj3d5i9RPijR",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR Z-VIRUS EPIC",
+						"src": "ipfs://Qmc7vEdnkd8BUPPUhGEC9TPScSej4eaFSnadFbkUPVGqM7"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR Z-VIRUS EPIC",
+						"src": "ipfs://Qmd7avGKT8yf9j95nxtxyHZz6nuDnSvNu1wVFjAgqieuid"
+					}
+				]
+			},
+			"HYPESKULLS_VT_M_C": {
+				"vapor_type": "Mecha",
+				"vapor_rarity": "Common",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR MECHA COMMON",
+				"image": "ipfs://QmYhwR55qH88ywDAWZKZWztjXf3su1ipzhPX6LW4NKoT6N",
+				"title": "VAPOR v1 [[[COMMON]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR MECHA COMMON",
+						"src": "ipfs://QmWDK7XaXU4BXgwChQEcP7Uo2KErsSbif6R7S4tv7w4ZmW"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR MECHA COMMON",
+						"src": "ipfs://QmYnQ7ad31Yo7WcBF8nLDyzNNp9jRFmivBqNDDJe9zhDjq"
+					}
+				]
+			},
+			"HYPESKULLS_VT_M_EE": {
+				"vapor_type": "Mecha",
+				"vapor_rarity": "Elite",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR MECHA ELITE",
+				"image": "ipfs://QmUz8bfRRucHMqBqCtioN7yJ5MoPQ4yzr3rPUEgPikjNFh",
+				"title": "VAPOR v1 [[[ELITE]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR MECHA ELITE",
+						"src": "ipfs://QmSjjH349CrKtcKNyamvHNzMfZNrgkSBrVwS4gAV9haKJZ"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR MECHA ELITE",
+						"src": "ipfs://QmcrHgfh9Mvs5VrY6yDE5cWjLy9SgmhC6E4rrPaWQJcVDD"
+					}
+				]
+			},
+			"HYPESKULLS_VT_M_E": {
+				"vapor_type": "Mecha",
+				"vapor_rarity": "Epic",
+				"author": "H.Y.P.E.",
+				"name": "HYPEVAPOR MECHA EPIC",
+				"image": "ipfs://QmVcwj4WEJJtonyn9DQfyTJnepoHQJfb3wTGKUsGyb5XjZ",
+				"title": "VAPOR v1 [[[EPIC]]]",
+				"url": "http://seehype.com",
+				"files": [
+					{
+						"mediaType": "video/mp4",
+						"name": "HYPEVAPOR MECHA EPIC",
+						"src": "ipfs://QmfFYVyzt5tvFQnDY3KTCi8ETuN8qsFy5pKU3oG4KVXAxE"
+					},
+					{
+						"mediaType": "video/webm",
+						"name": "HYPEVAPOR MECHA EPIC",
+						"src": "ipfs://QmQZitYgDdaBoXuUU9YnjUhRMWp9RCRxxdL9vwMqDcXVsr"
+					}
+				]
+			}
+		}
+	}
+}
