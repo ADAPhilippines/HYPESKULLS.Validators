@@ -31,14 +31,14 @@ class Program
 	const string TX_RAW = "matx.raw";
 	const string TX_SIGNED = "matx.signed";
 
-	const ulong MIN_UTXO_VAPOR_TOKEN = 6_000_000;
+	const ulong MIN_UTXO_VAPOR_TOKEN = 4_550_000_000;
 	const int TX_OUT_BATCH_VAPOR_TOKEN = 30;
 
-	const ulong MIN_UTXO_SH_TOKEN = 14_000_000;
+	const ulong MIN_UTXO_SH_TOKEN = 220_000_000;
 	const int TX_BATCH_SH_TOKEN = 400;
 	const int TX_OUT_BATCH_SH_TOKEN = 100;
 
-	const ulong MIN_UTXO_VRT_TOKEN = 15_000_000;
+	const ulong MIN_UTXO_VRT_TOKEN = 220_000_000;
 	const int TX_BATCH_VRT_TOKEN= 300;
 	const int TX_OUT_BATCH_VRT_TOKEN = 100;
 
@@ -50,7 +50,7 @@ class Program
 	{
 		var policyId = (await File.ReadAllTextAsync(Path.Combine(WORKING_DIRECTORY, POLICY_ID_PATH))).Trim();
 
-		var outWalletAddress = "addr_test1qqg5q528cac7dzdpyg3ypktc3kquhsgtlq00rruqan3dqrpewh7z9ypn24ne50gxuj3uufrukmpaee02nuuevr9egc8qgevk0k";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
+		var outWalletAddress = "addr_test1vze9knm2zt3sdlse5g7097sqg0y7pr6vmk0nksyw4h44s5s5jqqvy";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
 		if (outWalletAddress is null) return;
 
 		var inWalletAddress = await GetWalletAddressAsync(WALLET_IN_ADDR_PATH);
@@ -72,25 +72,25 @@ class Program
 			where XXXX means zero padded number string from 0 - 1500
 		**/
 		
-		var nativeAssetsToMintSh = new List<NativeAsset>();
-		for (int i = 1; i <= 1500; i++)
-		{
-			nativeAssetsToMintSh.Add(new NativeAsset($"HYPESKULL{i:0000}_SH", 1));
-		}
-		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_SH_TOKEN, nativeAssetsToMintSh, TX_BATCH_SH_TOKEN, TX_OUT_BATCH_SH_TOKEN);
+		// var nativeAssetsToMintSh = new List<NativeAsset>();
+		// for (int i = 1; i <= 1500; i++)
+		// {
+		// 	nativeAssetsToMintSh.Add(new NativeAsset($"HYPESKULL{i:0000}_SH", 1));
+		// }
+		// await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_SH_TOKEN, nativeAssetsToMintSh, TX_BATCH_SH_TOKEN, TX_OUT_BATCH_SH_TOKEN);
 
-		var nativeAssetsToMintVrt = new List<NativeAsset>();
-		for (int i = 1; i <= 1500; i++)
-		{
-			nativeAssetsToMintVrt.Add(new NativeAsset($"HYPESKULLS_VRT_{i:0000}", 1));
-		}
-		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VRT_TOKEN, nativeAssetsToMintVrt, TX_BATCH_VRT_TOKEN, TX_OUT_BATCH_VRT_TOKEN);
+		// var nativeAssetsToMintVrt = new List<NativeAsset>();
+		// for (int i = 1; i <= 1500; i++)
+		// {
+		// 	nativeAssetsToMintVrt.Add(new NativeAsset($"HYPESKULLS_VRT_{i:0000}", 1));
+		// }
+		// await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VRT_TOKEN, nativeAssetsToMintVrt, TX_BATCH_VRT_TOKEN, TX_OUT_BATCH_VRT_TOKEN);
 
-		var nativeAssetsToMintPt = new List<NativeAsset> 
-		{
-			new NativeAsset("HYPESKULLS_PT", 100)
-		};
-		await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_PT_TOKEN, nativeAssetsToMintPt, TX_BATCH_PT_TOKEN, TX_OUT_BATCH_PT_TOKEN);
+		// var nativeAssetsToMintPt = new List<NativeAsset> 
+		// {
+		// 	new NativeAsset("HYPESKULLS_PT", 100)
+		// };
+		// await MintVaporUtilityTokenAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_PT_TOKEN, nativeAssetsToMintPt, TX_BATCH_PT_TOKEN, TX_OUT_BATCH_PT_TOKEN);
 	}
 
 	static async Task MintVaporUtilityTokenAsync(string policyId, string inWalletAddress, string outWalletAddress, ulong minUtxo, List<NativeAsset> nativeAssetsToMint, int batchPerTx, int batchPerTxOut)
@@ -342,7 +342,7 @@ class Program
 		await File.WriteAllTextAsync(Path.GetFullPath(outputMetadataOutputpath), processedContent);
 	}
 
-	static async Task<bool> CreateMintingDraftAsync(List<Utxo> inputUtxos, string changeAddress,string outAddress, ulong minUtxo, string policyId, List<NativeAsset> nativeAssetsToMint, int batchPerTxOut, string? metadataPath)
+	static async Task<bool> CreateMintingDraftAsync(List<Utxo> inputUtxos, string changeAddress, string outAddress, ulong minUtxo, string policyId, List<NativeAsset> nativeAssetsToMint, int batchPerTxOut, string? metadataPath)
 	{
 		Console.WriteLine("Building minting transaction draft.");
 
