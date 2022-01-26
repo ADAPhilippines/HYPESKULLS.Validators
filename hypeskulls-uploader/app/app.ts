@@ -9,6 +9,8 @@ const assetDir = "./assets/VAPOR_ASSETS";
 const columnIndex = 0;
 const tsvFilePath = "./assets/assets.tsv";
 const metadataJsonPath = "./assets/test_metadata.json";
+const metadataJsonPath1 = "./assets/test_metadata_1.json";
+const metadataJsonPath2 = "./assets/test_metadata_2.json";
 const bucketName = "cbe31cb6-58aa-4633-9e55-5c7190a1dfec-bucket";
 const bucketFolder = "vapor_test";
 
@@ -25,7 +27,8 @@ async function Main() {
 
 	await processTSVParseAsync(tsvFilePath);
 	//await processAssetUpload(tsvData, bucketName);
-	writeMetadataJson();
+	writeMetadataJson(0, 15, metadataJsonPath1);
+	writeMetadataJson(15, 30, metadataJsonPath2);
 }
 
 
@@ -246,11 +249,11 @@ function checkIsNotNullOrUndefined(data: any) {
 	return data !== undefined && data !== null && data.length > 0;
 }
 
-function writeMetadataJson() {
+function writeMetadataJson(startRow = 0, endRow = 0, outputPath: string) {
 
 	let tsvDataToProcess : any = {};
 	
-	for (let i = 0; i < tsvData.length; i++) {
+	for (let i = startRow; i < endRow; i++) {
 		let tsvItem = tsvData[i];
 		tsvItem["mediaType"] = tsvItem["imageMediaType"];
 		tsvDataToProcess[tsvItem["tokenName"]] = { ...tsvItem };
@@ -261,12 +264,12 @@ function writeMetadataJson() {
 
 	let metadata = {
 		"721": {
-			"<policy_id>": tsvDataToProcess
-		},
-		"version": "1.0"
+			"<policy_id>": tsvDataToProcess,
+			"version": "1.0"
+		}
 	}
 
-	fs.writeFileSync(metadataJsonPath, JSON.stringify(metadata, null, "\t"));
+	fs.writeFileSync(outputPath, JSON.stringify(metadata, null, "\t"));
 }
 
 (async () => {
