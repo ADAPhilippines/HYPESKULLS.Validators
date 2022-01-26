@@ -7,21 +7,21 @@ using HSVapor.Minter.Model;
 namespace HSVapor.Minter;
 class Program
 {
-	const bool ON_MAINNET = false;
-	const string NETWORK = ON_MAINNET ? "--mainnet" : "--testnet-magic 1097911063";
+	const bool IS_MAINNET = false;
+	const string NETWORK = IS_MAINNET ? "--mainnet" : "--testnet-magic 1097911063";
 	const string WORKING_DIRECTORY = "../../../../mint_test/";
 
-	const string POLICY_SCRIPT_PATH = "policy/policy.script";
-	const string POLICY_VKEY_PATH = "policy/policy.vkey";
-	const string POLICY_SKEY_PATH = "policy/policy.skey";
-	const string POLICY_ID_PATH = "policy/policyID";
+	const string POLICY_SCRIPT_PATH = "policy/policy1.script";
+	const string POLICY_VKEY_PATH = "policy/policy1.vkey";
+	const string POLICY_SKEY_PATH = "policy/policy1.skey";
+	const string POLICY_ID_PATH = "policy/policyID1";
 
 	const string METADATA_DIRECTORY = $"{WORKING_DIRECTORY}/metadata/";
-	const string METADATA_JSON = "vapor_token_metadata.json";
-	const string METADATA_PROCESSED_JSON = "processed_metadata.json";
+	const string METADATA_JSON = "vapor_token_metadata";
+	const string METADATA_PROCESSED_JSON = "processed_metadata";
 	const string METADATA_TSV = "vapor_token_metadata.tsv";
 	const int METADATA_TSV_TOKEN_NAME_COLUMN = 0;
-	const int METADATA_TSV_TOTAL_SUPPLY_COLUMN = 11;
+	const int METADATA_TSV_TOTAL_SUPPLY_COLUMN = 13;
 
 	const string WALLET_OUT_ADDR_PATH = $"{WORKING_DIRECTORY}/payment.addr";
 	const string WALLET_IN_ADDR_PATH = $"{WORKING_DIRECTORY}/payment.addr";
@@ -31,8 +31,9 @@ class Program
 	const string TX_RAW = "matx.raw";
 	const string TX_SIGNED = "matx.signed";
 
-	const ulong MIN_UTXO_VAPOR_TOKEN = 4_550_000_000;
-	const int TX_OUT_BATCH_VAPOR_TOKEN = 30;
+	const ulong MIN_UTXO_VAPOR_TOKEN = 4_000_000;//4_550_000_000;
+	const int TX_OUT_BATCH_VAPOR_TOKEN = 15;
+	const int TX_BATCH_VAPOR_TOKEN = 15;
 
 	const ulong MIN_UTXO_SH_TOKEN = 220_000_000;
 	const int TX_BATCH_SH_TOKEN = 400;
@@ -50,7 +51,7 @@ class Program
 	{
 		var policyId = (await File.ReadAllTextAsync(Path.Combine(WORKING_DIRECTORY, POLICY_ID_PATH))).Trim();
 
-		var outWalletAddress = "addr_test1vze9knm2zt3sdlse5g7097sqg0y7pr6vmk0nksyw4h44s5s5jqqvy";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
+		var outWalletAddress = "addr_test1qz3eh93cprs706psh9tn77m90tepk0spn2d7h3g4s3me9n5s8jsc8q3dmt5fhh8ra3sthg7ax0xgh2xuhhyf0ac52m3s2dh6u3";//"addr_test1vze9knm2zt3sdlse5g7097sqg0y7pr6vmk0nksyw4h44s5s5jqqvy";//await GetWalletAddressAsync(WALLET_OUT_ADDR_PATH);
 		if (outWalletAddress is null) return;
 
 		var inWalletAddress = await GetWalletAddressAsync(WALLET_IN_ADDR_PATH);
@@ -62,7 +63,7 @@ class Program
 			return;
 		}
 
-		await MintVaporAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VAPOR_TOKEN);
+		await MintVaporAsync(policyId, inWalletAddress, outWalletAddress, MIN_UTXO_VAPOR_TOKEN, TX_BATCH_VAPOR_TOKEN, TX_OUT_BATCH_VAPOR_TOKEN);
 
 		/**
 			Utility tokens for HYPE Vapor Contracts:
@@ -139,7 +140,7 @@ class Program
 		}
 	}
 
-	static async Task MintVaporAsync(string policyId, string inWalletAddress, string outWalletAddress, ulong minUtxo)
+	static async Task MintVaporAsync(string policyId, string inWalletAddress, string outWalletAddress, ulong minUtxo, int batchPerTx, int batchPerTxOut)
 	{
 		Console.WriteLine("Minting Vapor tokens");
 		// Read TSV File here to get total supply
@@ -170,38 +171,61 @@ class Program
 			Console.WriteLine("No Native Assets to mint found. \n");
 			return;
 		}
+		
+		var totalTx = nativeAssetsToMint.Count / batchPerTx;
+		var remaninderCount = nativeAssetsToMint.Count % batchPerTx;
+		var nativeAssetToMintBatches = new List<List<NativeAsset>>();
 
-		// change values to empty if no metadata
-		var unprocessedMetadataJsonFilePath = Path.Combine(METADATA_DIRECTORY, METADATA_JSON);
-		var processedMetadataFilePath =  Path.Combine(METADATA_DIRECTORY, METADATA_PROCESSED_JSON);
-
-		if (!string.IsNullOrEmpty(METADATA_JSON))
+		for (int i = 0; i < totalTx; i++)
 		{
-			await GenerateProcessedMetadataJsonAsync(processedMetadataFilePath, unprocessedMetadataJsonFilePath, policyId);
+			var txOutNativeAssetsBatch = nativeAssetsToMint.GetRange(i * batchPerTx, batchPerTx);
+			nativeAssetToMintBatches.Add(txOutNativeAssetsBatch);
 		}
 
-		var walletUtxos = await GetAddressUtxoAsync(inWalletAddress);
-		if (walletUtxos is null)
+		if (remaninderCount is not 0)
 		{
-			Console.WriteLine("Failed to retrieve address UTXOs \n");
-			return;
+			var txNativeAssetsBatch = nativeAssetsToMint.GetRange(totalTx * batchPerTx, remaninderCount);
+			nativeAssetToMintBatches.Add(txNativeAssetsBatch);
 		}
 
-		var didBuildDraft = await CreateMintingDraftAsync(walletUtxos, inWalletAddress, outWalletAddress, minUtxo, policyId, nativeAssetsToMint, TX_OUT_BATCH_VAPOR_TOKEN, processedMetadataFilePath);
-		if (!didBuildDraft) return;
-
-		var signTx = await SignTransactionAsync();
-		if (signTx is null) return;
-
-		var didSubmit = await SubmitTransactionAsync();
-		if (!didSubmit) return;
-
-		Console.WriteLine("Checking transaction is confirmed.");
-		while (!(await IsTransactionConfirmedAsync(signTx, inWalletAddress)))
+		for (int i = 0; i < nativeAssetToMintBatches.Count; i++)
 		{
-			await Task.Delay(20000);
+			var nativeAssetsBatch = nativeAssetToMintBatches[i];
+			
+			// change values to empty if no metadata
+			var unprocessedMetadataJsonFilePath = Path.Combine(METADATA_DIRECTORY, $"{METADATA_JSON}_{i+1}.json");
+			string? processedMetadataFilePath = null;
+
+			if (!string.IsNullOrEmpty(METADATA_JSON))
+			{
+				processedMetadataFilePath =  Path.Combine(METADATA_DIRECTORY, $"{METADATA_PROCESSED_JSON}_{i+1}.json");
+				await GenerateProcessedMetadataJsonAsync(processedMetadataFilePath, unprocessedMetadataJsonFilePath, policyId);
+			}
+
+			Console.WriteLine($"Minting {nativeAssetsBatch.First().Name} to {nativeAssetsBatch.Last().Name}");
+			var walletUtxos = await GetAddressUtxoAsync(inWalletAddress);
+			if (walletUtxos is null)
+			{
+				Console.WriteLine("Failed to retrieve address UTXOs \n");
+				return;
+			}
+
+			var didBuildDraft = await CreateMintingDraftAsync(walletUtxos, inWalletAddress, outWalletAddress, minUtxo, policyId, nativeAssetsBatch, TX_OUT_BATCH_VAPOR_TOKEN, processedMetadataFilePath);
+			if (!didBuildDraft) return;
+
+			var signTx = await SignTransactionAsync();
+			if (signTx is null) return;
+
+			var didSubmit = await SubmitTransactionAsync();
+			if (!didSubmit) return;
+
+			Console.WriteLine("Checking transaction is confirmed.");
+			while (!(await IsTransactionConfirmedAsync(signTx, inWalletAddress)))
+			{
+				await Task.Delay(20000);
+			}
+			Console.WriteLine("Submitted transaction confirmed.");
 		}
-		Console.WriteLine("Submitted transaction confirmed.");
 	}
 
 	static async Task<string?> GetWalletAddressAsync(string addressFilePath)
