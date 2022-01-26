@@ -1,32 +1,31 @@
-import * as fs from 'fs';
-import csv from 'csv-parser';
-import { stringify } from 'csv-stringify/sync';
-import { S3 } from 'aws-sdk';
+import * as fs from "fs";
+import csv from "csv-parser";
+import { stringify } from "csv-stringify/sync";
+import { S3 } from "aws-sdk";
 import S3UploadParams from "./Model/S3UploadParams";
 
 const tsvData: any[] = [];
-const assetDir = './assets/VAPOR_ASSETS';
+const assetDir = "./assets/VAPOR_ASSETS";
 const columnIndex = 0;
-const imageMediaType = "image/gif"
+const tsvFilePath = "./assets/assets.tsv";
+const metadataJsonPath = "./assets/test_metadata.json";
+const bucketName = "cbe31cb6-58aa-4633-9e55-5c7190a1dfec-bucket";
+const bucketFolder = "vapor_test";
 
 const s3 = new S3({
-	apiVersion: '2006-03-01',
-	accessKeyId: 'G5QjuIw2bQ3I4gDJqQ5fYQ==',
-	secretAccessKey: 'IFVt4+Z8VSixUDxfs3iVzeIOBuzZJAQSCyxvnfzTcjE=',
-	endpoint: 'https://storageapi.fleek.co',
-	region: 'ap-southeast-1',
+	apiVersion: "2006-03-01",
+	accessKeyId: "G5QjuIw2bQ3I4gDJqQ5fYQ==",
+	secretAccessKey: "IFVt4+Z8VSixUDxfs3iVzeIOBuzZJAQSCyxvnfzTcjE=",
+	endpoint: "https://storageapi.fleek.co",
+	region: "ap-southeast-1",
 	s3ForcePathStyle: true
 });
 
-const tsvFilePath = "./assets/assets2.tsv";
 async function Main() {
 
-	//await processTSVParseAsync(tsvFilePath);
-	
-	// get bucket list
-	// let bucketName = "cbe31cb6-58aa-4633-9e55-5c7190a1dfec-bucket";
-	// await processAssetUpload(tsvData, bucketName);
-	//writeMetadataJson();
+	await processTSVParseAsync(tsvFilePath);
+	//await processAssetUpload(tsvData, bucketName);
+	writeMetadataJson();
 }
 
 
@@ -37,15 +36,15 @@ async function processAssetUpload(tsvData: any[], bucketName: string) {
 		for (let i = 0; i < tsvData.length; i++) {
 			let tsvItem = tsvData[i];
 			let baseFileName = getBaseFileName(tsvData[i]);
-			console.log(`Processing ${tsvData[i]['token_name']}`);
-			let files: any[] = tsvItem['files'];
+			console.log(`Processing ${tsvData[i]["tokenName"]}`);
+			let files: any[] = tsvItem["files"];
 
-			if (tsvData[i]['files'].length > 0) {
+			if (tsvData[i]["files"].length > 0) {
 				for (var i2 = 0; i2 < files.length; i2++) {
 					try {
-						let fileType = files[i2]['mediaType'].split('/').pop();
+						let fileType = files[i2]["mediaType"].split("/").pop();
 
-						if (!checkIsNotNullOrUndefined(files[i2]['src'])) {
+						if (!checkIsNotNullOrUndefined(files[i2]["src"])) {
 							if (fileType != undefined && fileType.length > 0) {
 
 								if (!fs.existsSync(`${assetDir}/${fileType}/${baseFileName}.${fileType}`)) {
@@ -56,10 +55,10 @@ async function processAssetUpload(tsvData: any[], bucketName: string) {
 								let fileStream = fs.createReadStream(`${assetDir}/${fileType}/${baseFileName}.${fileType}`);
 								let params: S3UploadParams = {
 									Bucket: bucketName,
-									Key: `vapor/${fileType}/${baseFileName}.${fileType}`,
-									ContentType: files[i2]['mediaType'],
+									Key: `${bucketFolder}/${fileType}/${baseFileName}.${fileType}`,
+									ContentType: files[i2]["mediaType"],
 									Body: fileStream,
-									ACL: 'public-read',
+									ACL: "public-read",
 								};
 
 								let ipfsHash = await uploadAsync(params);
@@ -69,12 +68,12 @@ async function processAssetUpload(tsvData: any[], bucketName: string) {
 								}
 
 								fileStream.close();
-								files[i2]['src'] = `ipfs://${ipfsHash}`;
+								files[i2]["src"] = `ipfs://${ipfsHash}`;
 
 								await writeTSVDataAsync(tsvData);
 							}
 						} else {
-							console.log(`${tsvItem['token_name']} already uploaded file ${baseFileName}.${fileType} - ${files[i2]['src']}`);
+							console.log(`${tsvItem["tokenName"]} already uploaded file ${baseFileName}.${fileType} - ${files[i2]["src"]}`);
 						}
 					}
 					catch (error) {
@@ -82,7 +81,7 @@ async function processAssetUpload(tsvData: any[], bucketName: string) {
 					}
 				}
 			}
-			if (!checkIsNotNullOrUndefined(tsvItem['image'])) {
+			if (!checkIsNotNullOrUndefined(tsvItem["image"])) {
 
 				let fileType = "gif";
 
@@ -95,23 +94,23 @@ async function processAssetUpload(tsvData: any[], bucketName: string) {
 
 				let params: S3UploadParams = {
 					Bucket: bucketName,
-					Key: `vapor/${fileType}/${baseFileName}.${fileType}`,
+					Key: `${bucketFolder}/${fileType}/${baseFileName}.${fileType}`,
 					ContentType: `image/${fileType}`,
 					Body: fileStream,
-					ACL: 'public-read',
+					ACL: "public-read",
 				};
 				let ipfsHash = await uploadAsync(params);
 				while (ipfsHash === null) {
 					ipfsHash = await uploadAsync(params);
 				}
 				fileStream.close();
-				tsvItem['image'] = `ipfs://${ipfsHash}`;
+				tsvItem["image"] = `ipfs://${ipfsHash}`;
 				await writeTSVDataAsync(tsvData);
 
 			} else {
-				console.log(`${tsvItem['token_name']} already uploaded image file - ${tsvItem['image']}`);
+				console.log(`${tsvItem["tokenName"]} already uploaded image file - ${tsvItem["image"]}`);
 			}
-			console.log(`Finished processing ${tsvItem['token_name']} \n`);
+			console.log(`Finished processing ${tsvItem["tokenName"]} \n`);
 		}
 	});
 }
@@ -136,30 +135,30 @@ async function writeTSVDataAsync(tsvData: any[]) {
 			}
 
 			for (var i = 0; i < tsvDataToProcess.length; i++) {
-				if (checkIsNotNullOrUndefined(tsvDataToProcess[i]['files'])) {
-					if (tsvDataToProcess[i]['files'].length > 0) {
+				if (checkIsNotNullOrUndefined(tsvDataToProcess[i]["files"])) {
+					if (tsvDataToProcess[i]["files"].length > 0) {
 
 						let mediaType: string[] = [];
 						let src: string[] = [];
-						let files: any[] = tsvDataToProcess[i]['files'];
+						let files: any[] = tsvDataToProcess[i]["files"];
 						files.forEach(fileItem => {
-							mediaType.push(fileItem['mediaType']);
-							src.push(fileItem['src']);
+							mediaType.push(fileItem["mediaType"]);
+							src.push(fileItem["src"]);
 						});
 
-						tsvDataToProcess[i]['mediaType'] = mediaType.join(",");
-						tsvDataToProcess[i]['src'] = src.join(",");
-						delete tsvDataToProcess[i]['files'];
+						tsvDataToProcess[i]["mediaType"] = mediaType.join(",");
+						tsvDataToProcess[i]["src"] = src.join(",");
+						delete tsvDataToProcess[i]["files"];
 					}
 				}
 				processedTSVData.push(tsvDataToProcess[i]);
 			}
 
-			const stringifiedData = stringify(processedTSVData, { delimiter: '\t', columns: columns[columnIndex].split("\t") });
+			const stringifiedData = stringify(processedTSVData, { delimiter: "\t", columns: columns[columnIndex].split("\t") });
 
 			let tsv_content = columns.join("\n") + "\n" + stringifiedData;
 			fs.writeFileSync(tsvFilePath, tsv_content);
-			console.log(`TSV file updated.`, '\n');
+			console.log(`TSV file updated.`, "\n");
 			resolve(null);
 		}
 		else {
@@ -171,25 +170,25 @@ async function writeTSVDataAsync(tsvData: any[]) {
 
 async function uploadAsync(params: S3UploadParams) {
 	return new Promise<string>((resolve, reject) => {
-		console.log(`Preparing to upload {{ ${params.Key} }} in {{ ${params.Bucket} }}`);
+		console.log(`Preparing to upload ${params.Key} }}`);
 		const request = s3.putObject(params);
 		console.log(`Uploading: ${params.Key}`);
 
 		let ipfsHashV0 = "";
 
-		request.on('httpHeaders', (statusCode, headers) => {
-			ipfsHashV0 = headers['x-fleek-ipfs-hash-v0'];
+		request.on("httpHeaders", (statusCode, headers) => {
+			ipfsHashV0 = headers["x-fleek-ipfs-hash-v0"];
 			console.log(`IPFS Hash V0 of ${params.Key} - ${ipfsHashV0}`);
 		}).
-			on('success', function (response) {
+			on("success", function (response) {
 				console.log(`Successfully uploaded - ${params.Key}`);
 			}).
-			on('error', function (error, response) {
+			on("error", function (error, response) {
 				console.log(`Error occured failed to upload - ${params.Key}`);
 				reject(error);
 			}).
-			on('complete', function (response) {
-				console.log('\n');
+			on("complete", function (response) {
+				console.log("\n");
 				resolve(ipfsHashV0);
 			}).send();
 	})
@@ -201,31 +200,31 @@ async function processTSVParseAsync(csvPath: string) {
 
 		if (fs.existsSync(tsvFilePath)) {
 			fs.createReadStream(csvPath)
-				.pipe(csv({ skipLines: 0, separator: '\t' }))
-				.on('data', (data) => {
-					data['mediaType'] = data['mediaType'].split(',');
-					data['src'] = data['src'].split(',');
-					data['files'] = [];
-					for (var i = 0; i < data['mediaType'].length; i++) {
+				.pipe(csv({ skipLines: 0, separator: "\t" }))
+				.on("data", (data) => {
+					data["mediaType"] = data["mediaType"].split(",");
+					data["src"] = data["src"].split(",");
+					data["files"] = [];
+					for (var i = 0; i < data["mediaType"].length; i++) {
 						let fileItem: any = {};
-						fileItem['mediaType'] = data['mediaType'][i];
-						fileItem['name'] = data['name'];
-						if (checkIsNotNullOrUndefined(data['src'][i])) {
-							fileItem['src'] = data['src'][i];
+						fileItem["mediaType"] = data["mediaType"][i];
+						fileItem["name"] = data["name"];
+						if (checkIsNotNullOrUndefined(data["src"][i])) {
+							fileItem["src"] = data["src"][i];
 						} else {
-							fileItem['src'] = '';
+							fileItem["src"] = "";
 						}
-						data['files'].push(fileItem);
+						data["files"].push(fileItem);
 					}
 
-					delete data['mediaType'];
-					delete data['src'];
+					delete data["mediaType"];
+					delete data["src"];
 					tsvData.push(data)
 				})
-				.on('error', (error) => {
+				.on("error", (error) => {
 					reject(error);
 				})
-				.on('end', () => {
+				.on("end", () => {
 					resolve(null);
 				});
 		} else {
@@ -236,8 +235,8 @@ async function processTSVParseAsync(csvPath: string) {
 
 function getBaseFileName(tsvItem: any): string {
 
-	if (checkIsNotNullOrUndefined(tsvItem['vapor_type']) && checkIsNotNullOrUndefined(tsvItem['vapor_rarity'])) {
-		return `VAPOR_${tsvItem['vapor_rarity']}_${tsvItem['vapor_type']}`.toUpperCase();
+	if (checkIsNotNullOrUndefined(tsvItem["type"]) && checkIsNotNullOrUndefined(tsvItem["rarity"])) {
+		return `VAPOR_${tsvItem["rarity"]}_${tsvItem["type"]}`.toUpperCase();
 	}
 
 	return "";
@@ -248,15 +247,16 @@ function checkIsNotNullOrUndefined(data: any) {
 }
 
 function writeMetadataJson() {
+
 	let tsvDataToProcess : any = {};
 	
 	for (let i = 0; i < tsvData.length; i++) {
 		let tsvItem = tsvData[i];
-		tsvItem['mediaType'] = imageMediaType;
-		let processedTsvItem = {};
-		tsvDataToProcess[tsvItem['token_name']] = { ...tsvItem };
-		delete tsvDataToProcess[tsvItem['token_name']]['token_name'];
-		delete tsvDataToProcess[tsvItem['token_name']]['total_supply'];
+		tsvItem["mediaType"] = tsvItem["imageMediaType"];
+		tsvDataToProcess[tsvItem["tokenName"]] = { ...tsvItem };
+		delete tsvDataToProcess[tsvItem["tokenName"]]["tokenName"];
+		delete tsvDataToProcess[tsvItem["tokenName"]]["totalSupply"];
+		delete tsvDataToProcess[tsvItem["tokenName"]]["imageMediaType"];
 	}
 
 	let metadata = {
@@ -266,7 +266,7 @@ function writeMetadataJson() {
 		"version": "1.0"
 	}
 
-	fs.writeFileSync("./assets/test_metadata.json", JSON.stringify(metadata));
+	fs.writeFileSync(metadataJsonPath, JSON.stringify(metadata, null, "\t"));
 }
 
 (async () => {
