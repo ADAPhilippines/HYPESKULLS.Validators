@@ -33,6 +33,7 @@ let IsConfirmingTx: boolean = false;
 let IsBootstrapping: boolean = false;
 let Interface: Readline.Interface;
 let ShufflerResult: HsShufflerResultRow[] = [];
+let PrevUtxosHash: string = "";
 
 const InitializeAsync = async () => {
     await LoadCardanoAsync();
@@ -56,7 +57,7 @@ const InitializeAsync = async () => {
     });
 
     CccSignalRConnection = new HubConnectionBuilder()
-        .withUrl("http://localhost:1338/vapor")
+        .withUrl("https://coordinator.seehype.com/vapor")
         .withAutomaticReconnect()
         .build();
 
@@ -68,6 +69,10 @@ const InitializeAsync = async () => {
         console.log("Tx submitted:", txId);
         await WaitTxConfirmedAsync(txId);
         IsConfirmingTx = false;
+    });
+
+    CccSignalRConnection.on("SubmitTxError", () => {
+        console.log("Error in submitting Tx");
     });
 }
 
@@ -104,8 +109,19 @@ const GetPublicAddress = () => {
 const ToBigNum = (value: any) => Cardano.BigNum.from_str(value.toString());
 
 const GetUtxosAsync = async () => {
-    var utxosResults = await Blockfrost.addressesUtxosAll(PublicAddress);
-    var utxos: TransactionUnspentOutput[] = [];
+    let utxosHash = "";
+    let utxosResults: any;
+
+    do {
+        utxosResults = await Blockfrost.addressesUtxosAll(PublicAddress);
+        utxosHash = sha256(JSON.stringify(utxosResults)).toString();
+        await Helpers.WaitFor(1000);
+    }
+    while (PrevUtxosHash == utxosHash);
+
+    PrevUtxosHash = utxosHash;
+
+    let utxos: TransactionUnspentOutput[] = [];
     for (const utxoResult of utxosResults) {
         utxos.push(
             Cardano.TransactionUnspentOutput.new(
@@ -213,6 +229,12 @@ const BootstrapContractAsync = async (tokenType: HsVaporTokenType, startIdx: num
             case HsVaporTokenType.VtClaimVt:
                 await LoadShufflerDataAsync();
                 startIdx = await SendBootstrapVtTxAsync(startIdx, endIdx);
+                break;
+            case HsVaporTokenType.VaporizeShadowHs:
+                startIdx = await SendBootstrapVaporizeShadowHsTxAsync(startIdx, endIdx);
+                break;
+            case HsVaporTokenType.VaporizePt:
+                startIdx = await SendBootstrapVaporizePtTxAsync(startIdx, endIdx);
                 break;
             default:
                 break;
@@ -326,7 +348,7 @@ const SendBootstrapVtTxAsync = async (startIdx: number = 0, endIdx: number = 30)
         tokenIdx++;
     }
 
-    var transaction = ConstructTx(utxos, transactionOutputs, protocolParameters);
+    var transaction = ConstructTx(utxos, transactionOutputs, protocolParameters, 3);
 
     console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
     console.log(`Submiting Tx for Hypeskulls VT: ${startIdx} - ${tokenIdx - 1}`);
@@ -336,6 +358,80 @@ const SendBootstrapVtTxAsync = async (startIdx: number = 0, endIdx: number = 30)
         datumObjects
     );
     IsConfirmingTx = true;
+    return tokenIdx;
+}
+
+const SendBootstrapVaporizeShadowHsTxAsync = async (startIdx: number = 1, endIdx: number = 30) => {
+    const latestBlock = await Blockfrost.blocksLatest();
+    const protocolParameters = await Blockfrost.epochsParameters(latestBlock.epoch as number);
+    const shDatumObject = VaporizeShDatum();
+    const shDatumHash = Cardano.hash_plutus_data(ToPlutusData(shDatumObject));
+
+    const utxos = await GetUtxosAsync();
+
+    let tokenIdx: number = startIdx;
+    let transactionOutputs: TransactionOutput[] = [];
+    while (tokenIdx <= endIdx && transactionOutputs.length < 100) {
+        console.log("HS ", tokenIdx);
+        const shOutput = Cardano.TransactionOutput.new(
+            VaporizeContractAddress(),
+            GetHypeNftsOutput([HsHelpers.GetShadowHsTokenName(tokenIdx).substring(56)])
+        );
+        shOutput.set_data_hash(shDatumHash);
+
+        transactionOutputs.push(shOutput);
+        tokenIdx++;
+    }
+
+    console.log("Building Transaction...");
+    var transaction = await ConstructTxAsync(utxos, transactionOutputs, protocolParameters);
+
+    console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
+    console.log(`Submiting Tx for Shadow Hypeskulls ${startIdx} - ${tokenIdx - 1}`);
+
+    CccSignalRConnection.send("SubmitVaporizeTx",
+        Helpers.ToHex((transaction as Transaction).to_bytes()),
+        [shDatumObject]
+    );
+    IsConfirmingTx = true;
+
+    return tokenIdx;
+}
+
+const SendBootstrapVaporizePtTxAsync = async (startIdx: number = 1, endIdx: number = 30) => {
+    const latestBlock = await Blockfrost.blocksLatest();
+    const protocolParameters = await Blockfrost.epochsParameters(latestBlock.epoch as number);
+    const ptDatumObject = VaporizePtDatum();
+    const ptDatumHash = Cardano.hash_plutus_data(ToPlutusData(ptDatumObject));
+
+    const utxos = await GetUtxosAsync();
+
+    let tokenIdx: number = startIdx;
+    let transactionOutputs: TransactionOutput[] = [];
+    while (tokenIdx <= endIdx && transactionOutputs.length < 100) {
+        console.log("PT ", tokenIdx);
+        const shOutput = Cardano.TransactionOutput.new(
+            VaporizeContractAddress(),
+            GetHypeNftsOutput([Helpers.AsciiToHex("HYPESKULLS_PT")])
+        );
+        shOutput.set_data_hash(ptDatumHash);
+
+        transactionOutputs.push(shOutput);
+        tokenIdx++;
+    }
+
+    console.log("Building Transaction...");
+    var transaction = await ConstructTxAsync(utxos, transactionOutputs, protocolParameters);
+
+    console.log("Final tx size: ", (transaction as Transaction).to_bytes().length);
+    console.log(`Submiting Tx for Shadow Hypeskulls ${startIdx} - ${tokenIdx - 1}`);
+
+    CccSignalRConnection.send("SubmitVaporizeTx",
+        Helpers.ToHex((transaction as Transaction).to_bytes()),
+        [ptDatumObject]
+    );
+    IsConfirmingTx = true;
+
     return tokenIdx;
 }
 
@@ -357,7 +453,7 @@ const ConstructTxAsync = async (utxos: TransactionUnspentOutput[], outputs: Tran
     });
 }
 
-const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutput[], protocolParameters: any) => {
+const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutput[], protocolParameters: any, num_inputs: number = 1) => {
     try {
         const txBuilder = CreateTxBuilder(protocolParameters);
         const selfAddress = Cardano.Address.from_bech32(PublicAddress);
@@ -373,7 +469,7 @@ const ConstructTx = (utxos: TransactionUnspentOutput[], outputs: TransactionOutp
         const csResult = CoinSelection.randomImprove(
             utxos,
             transactionOutputs,
-            1
+            num_inputs
         );
 
         csResult.inputs.forEach((utxo) => {
@@ -439,6 +535,8 @@ const GetHypeNftsOutput = (assetNames: string[], lovelace: number = 0, isVapor: 
 
 const VtClaimContractAddress = () => Cardano.Address.from_bech32(Config.VtClaimContractAddress);
 
+const VaporizeContractAddress = () => Cardano.Address.from_bech32(Config.VaporizeContractAddress);
+
 //#region Datum Builders
 const VTClaimShDatum = () => {
     const datum = new PlutusDataObject(0);
@@ -469,6 +567,57 @@ const VTClaimVtDatum = (hash: string = "") => {
             Value: hash
         } as PlutusField
     ];
+    return datum;
+}
+
+const VaporizeShDatum = (pkh: string = "", orders: number = 0, delivered: number = 0) => {
+    const datum = new PlutusDataObject(0);
+    datum.Fields = [
+        {
+            Index: 0,
+            Type: PlutusFieldType.Data,
+            Key: "vaporizeList",
+            Value: VaporizeList(pkh, orders, delivered)
+        } as PlutusField,
+    ]
+    return datum;
+}
+
+const VaporizeList = (pkh: string = "", orders: number = 0, delivered: number = 0) => {
+    const datum = new PlutusDataObject(0);
+    datum.Fields = [
+        {
+            Index: 0,
+            Type: PlutusFieldType.Bytes,
+            Key: "pkh",
+            Value: pkh
+        } as PlutusField,
+        {
+            Index: 0,
+            Type: PlutusFieldType.Integer,
+            Key: "orders",
+            Value: orders
+        } as PlutusField,
+        {
+            Index: 0,
+            Type: PlutusFieldType.Integer,
+            Key: "delivered",
+            Value: delivered
+        } as PlutusField,
+    ]
+    return datum;
+}
+
+const VaporizePtDatum = (price: number = 70) => {
+    const datum = new PlutusDataObject(1);
+    datum.Fields = [
+        {
+            Index: 0,
+            Type: PlutusFieldType.Integer,
+            Key: "price",
+            Value: price
+        } as PlutusField
+    ]
     return datum;
 }
 //#endregion
@@ -523,6 +672,8 @@ const Main = async () => {
     console.log("VTClaim Contract Addres: ", Config.VtClaimContractAddress);
     console.log("Select Token Type To Bootstrap:");
     console.log("0 - VTClaim Shadow HS Tokens |  1 - VTClaim VRT Tokens | 2 - VTClaim VT Tokens");
+
+    // console.log(HsHelpers.GetHsMintString(1331,1350));
     // const utxos = await GetUtxosAsync();
 
     // utxos.forEach(utxo => {

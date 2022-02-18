@@ -1,7 +1,9 @@
 enum HsVaporTokenType {
     VtClaimShadowHs,
     VtClaimVrt,
-    VtClaimVt
+    VtClaimVt,
+    VaporizeShadowHs,
+    VaporizePt
 }
 
 function getTokenName(tokenType: HsVaporTokenType) {
@@ -12,6 +14,10 @@ function getTokenName(tokenType: HsVaporTokenType) {
             return "VTClaim VRT"
         case HsVaporTokenType.VtClaimVt:
             return "VTClaim VT"
+        case HsVaporTokenType.VaporizeShadowHs:
+            return "Vaporize Shadow Hypeskull"
+        case HsVaporTokenType.VaporizePt:
+            return "Vaporize PT"
         default:
             return ""
     }

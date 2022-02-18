@@ -44,10 +44,10 @@ data ContractInfo = ContractInfo
 
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
-    { ciAdminPKH            = "dbf64d0b70b89dab5872db86ff5d393bc548fcd3b8eba60610cae83c"
-    , ciOriginPolicy        = "f3dfc1b6f369def06d1d576cfc98eb51e7e76ef1ecbb2f272c4f1621"
-    , ciVaporPolicy         = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
-    , ciMinUtxoLovelace     = 2_000_000
+    { ciAdminPKH            = "630341893fe6eab84475f06d34306d1c0a51d7258dedc81793f7b783"
+    , ciOriginPolicy        = "2f459a0a0872e299982d69e97f2affdb22919cafe1732de01ca4b36c"
+    , ciVaporPolicy         = "6f37a98bd0c9ced4e302ec2fb3a2f19ffba1b5c0c2bedee3dac30e56"
+    , ciMinUtxoLovelace     = 3_000_000
     , ciDefaultVRTOwner     = ""
     , ciShadowHSAffix       = "_SH"
     , ciVRTAffix            = "HYPESKULLS_VRT_"
