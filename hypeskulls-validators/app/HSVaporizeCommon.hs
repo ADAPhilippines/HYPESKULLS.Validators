@@ -19,8 +19,7 @@ module HSVaporizeCommon
     , (|||)
     , VaporizeDatum (..)
     , VaporizeAction (..)
-    , VaporizeOrderDatum (..)
-    , VaporizeOrderListDatum (..)
+    , VaporizeListDatum (..)
     , AssetCount (..)
     ) where
 
@@ -55,11 +54,13 @@ data ContractInfo = ContractInfo
     , ciRessDiscount            :: !Integer
     , ciDefaultShadowHSOwner    :: !PubKeyHash
     , ciVTAffix                 :: !BuiltinByteString 
-    , ciPtTokenName             :: !BuiltinByteString 
+    , ciPtTokenName             :: !TokenName 
     , ciShadowHSAffix           :: !BuiltinByteString
     , ciRessTokenName           :: !TokenName  
     , ciVaporTokenNames         :: ![BuiltinByteString]
     , ciEmptyByteString         :: !BuiltinByteString
+    , ciVaporizerFee            :: !Integer
+    , ciNegativeOne             :: !Integer
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
 contractInfo :: ContractInfo
@@ -68,8 +69,8 @@ contractInfo = ContractInfo
     , ciOriginPolicy            = "f3dfc1b6f369def06d1d576cfc98eb51e7e76ef1ecbb2f272c4f1621"
     , ciVaporPolicy             = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
     , ciMinUtxoLovelace         = 1_500_000
-    , ciPriceTierDelta          = 10
-    , ciRessDiscount            = 20
+    , ciPriceTierDelta          = 10_000_000
+    , ciRessDiscount            = 20_000_000
     , ciDefaultShadowHSOwner    = ""
     , ciVTAffix                 = "HYPESKULLS_VT_"
     , ciPtTokenName             = "HYPESKULLS_PT"
@@ -77,24 +78,20 @@ contractInfo = ContractInfo
     , ciRessTokenName           = "HYPESKULLSRESURRECTION"
     , ciVaporTokenNames         = vaporTokenNames
     , ciEmptyByteString         = ""
+    , ciVaporizerFee            = 2_000_000
+    , ciNegativeOne             = -1
     }
 
-data VaporizeOrderDatum = VaporizeOrderDatum
-    { vodPkh            :: !PubKeyHash
-    , vodAddr           :: !BuiltinByteString 
+data VaporizeListDatum = VaporizeListDatum
+    { vldPKH            :: !PubKeyHash
+    , vldOrders         :: !Integer
+    , vldDelivered      :: !Integer
     } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
 
-data VaporizeOrderListDatum = VaporizeOrderListDatum
-    { vsdPkh            :: !PubKeyHash
-    , vsdAddr           :: !BuiltinByteString 
-    , vsdOrders         :: !Integer
-    , vsdDelivered      :: !Integer
-    } deriving (Pr.Show, Pr.Eq, Generic, ToJSON, FromJSON)
-
-data VaporizeDatum = OrderDatum VaporizeOrderDatum | ShadowHsDatum VaporizeOrderListDatum | PtDatum Integer
+data VaporizeDatum = OrderDatum PubKeyHash | ShadowHsDatum VaporizeListDatum | PtDatum Integer
     deriving (Generic, ToJSON, FromJSON)
 
-data VaporizeAction = Vaporize | UpdateSh | UsePt | Deliver | Withdraw
+data VaporizeAction = Vaporize | UpdateSh | UsePt | Refund | Deliver | Withdraw
     deriving (Generic, ToJSON, FromJSON)
 
 {-# INLINABLE (|||) #-}
@@ -112,10 +109,9 @@ instance Eq AssetCount where
                                                                 atn == btn &&
                                                                 an  == bn
 
-PlutusTx.makeIsDataIndexed  ''VaporizeDatum           [('OrderDatum, 0), ('ShadowHsDatum, 1), ('PtDatum, 2)]
-PlutusTx.makeIsDataIndexed  ''VaporizeAction          [('Vaporize, 0), ('UpdateSh, 1), ('UsePt, 2), ('Deliver, 3), ('Withdraw, 4)]
-PlutusTx.makeIsDataIndexed  ''VaporizeOrderDatum        [('VaporizeOrderDatum, 0)]
-PlutusTx.makeIsDataIndexed  ''VaporizeOrderListDatum    [('VaporizeOrderListDatum, 0)]
-PlutusTx.makeIsDataIndexed  ''ContractInfo              [('ContractInfo, 0)]
+PlutusTx.makeIsDataIndexed  ''VaporizeDatum     [('OrderDatum, 0), ('ShadowHsDatum, 1), ('PtDatum, 2)]
+PlutusTx.makeIsDataIndexed  ''VaporizeAction    [('Vaporize, 0), ('UpdateSh, 1), ('UsePt, 2), ('Refund, 3), ('Deliver, 4), ('Withdraw, 5)]
+PlutusTx.makeIsDataIndexed  ''VaporizeListDatum [('VaporizeListDatum, 0)]
+PlutusTx.makeIsDataIndexed  ''ContractInfo      [('ContractInfo, 0)]
 
 PlutusTx.makeLift           ''ContractInfo

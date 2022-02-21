@@ -30,11 +30,11 @@ common project-config
 library
     import:             base, project-config
     hs-source-dirs:     app
-    exposed-modules:    HSVTClaimEmulator
-                        HSVTClaimOffchain
+    exposed-modules:    
                         HSVaporizeEmulator
                         HSVaporizeOffchain
-                        HSShuffler
+                        -- HSVTClaimEmulator
+                        -- HSVTClaimOffchain
     
     if flag(unexpected_thunks)
       cpp-options: -DUNEXPECTED_THUNKS
