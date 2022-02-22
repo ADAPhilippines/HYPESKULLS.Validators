@@ -54,8 +54,7 @@ mkValidator ContractInfo{..} datum r ctx =
         (PtDatum price, UsePt)          ->  traceIfFalse "Fees not paid"                            (isFeePaid price)               &&&
                                             traceIfFalse "New PT datum invalid"                     (isNewPTDatumValid price)
         
-        (OrderDatum pkh, Refund)        ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)    &&&
-                                            traceIfFalse "Utxo Value not properly returned"         (isValueReturned pkh)
+        (OrderDatum pkh, Refund)        ->  traceIfFalse "Utxo Value not properly returned"         (isValueReturned pkh)
         
         (ShadowHsDatum vld, Deliver)    ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)    &&&
                                             traceIfFalse "New Sh Datum Invalid (3)"                 (isOrderListUpdateCorrect' vld)
@@ -193,7 +192,7 @@ mkValidator ContractInfo{..} datum r ctx =
             length ressTokenSpent == 1
             where
                 ressTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                ressTokenSpent =  filter f (Value.flattenValue (valueSpent info))
+                ressTokenSpent =  filter f (Value.flattenValue (valuePaidTo info ciAdminPKH))
                     where
                         f (cs, tn, n) = (cs == ciOriginPolicy)  &&& 
                                         (tn == ciRessTokenName) &&& 

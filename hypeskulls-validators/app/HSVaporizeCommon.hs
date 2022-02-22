@@ -65,10 +65,10 @@ data ContractInfo = ContractInfo
 
 contractInfo :: ContractInfo
 contractInfo = ContractInfo
-    { ciAdminPKH                = "dbf64d0b70b89dab5872db86ff5d393bc548fcd3b8eba60610cae83c"
+    { ciAdminPKH                = "a096d51da85c3eaabe2718be7b59f51291979935ad77b8deb4622fa3"
     , ciOriginPolicy            = "f3dfc1b6f369def06d1d576cfc98eb51e7e76ef1ecbb2f272c4f1621"
     , ciVaporPolicy             = "bf2c603d38ce68c6d875a097b5e6623fe0f5381d9171e06108e0aec9"
-    , ciMinUtxoLovelace         = 1_500_000
+    , ciMinUtxoLovelace         = 2_000_000
     , ciPriceTierDelta          = 10_000_000
     , ciRessDiscount            = 20_000_000
     , ciDefaultShadowHSOwner    = ""

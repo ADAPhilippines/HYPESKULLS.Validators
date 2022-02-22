@@ -10,6 +10,7 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE NumericUnderscores #-}
 
 import            Prelude
 import            System.Environment
@@ -65,15 +66,21 @@ writeHSVaporizeScript :: IO()
 writeHSVaporizeScript = 
   do
   putStrLn "HSVaporize Datums:"
+  print $ "OrderDatum value: " 
+    <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
+    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.OrderDatum "e282f7df7450c46c97ec221c5a54fc1ff54cafa7229f121e62410ea8"))
   print $ "ShadowHSDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
-    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHSDatum (VaporizeListDatum "aa97ee3cb9e684df6130b741aafc2a7f14f61b0673874df803fd8edb" 0 0)))
+    $ fromPlutusData (PlutusTx.toData $ HSVaporizeCommon.ShadowHsDatum (VaporizeListDatum "" 0 0)))
   print $ "PTDatum value: " 
     <> encode (scriptDataToJson ScriptDataJsonDetailedSchema 
-    $ fromPlutusData (PlutusTx.toData $ PTDatum 70))
+    $ fromPlutusData (PlutusTx.toData $ PtDatum 70_000_000))
   
   putStrLn "HSVaporize Actions:"
   print $ "Vaporize: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData Vaporize))
+  print $ "UpdateSh: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData UpdateSh))
+  print $ "UsePt: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData UsePt))
+  print $ "Refund: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData Refund))
   print $ "Deliver: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData Deliver))
   print $ "Withdraw: " <> encode (scriptDataToJson ScriptDataJsonDetailedSchema $ fromPlutusData (PlutusTx.toData HSVaporizeCommon.Withdraw))
 
