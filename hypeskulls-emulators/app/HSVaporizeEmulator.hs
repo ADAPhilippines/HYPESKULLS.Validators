@@ -85,7 +85,7 @@ runEmulator = do
         callEndpoint @"vaporize"    h3 VaporizeParams
             { vpPrice               = 70_000_000
             , vpVaporizerPkh        = "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd"
-            , vpVTToken             = ("HYPESKULLS_VT_AD_C", HSVaporizeCommon.ShadowHsDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" 2 0))
+            , vpVTToken             = ("HYPESKULLS_VT_AD_C", HSVaporizeCommon.ShadowHsDatum (VaporizeListDatum "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd" 1 0))
             }
         void $ Emulator.waitNSlots  1
         -- callEndpoint @"refund"      h3 "fabc30d46356151102cc57d427d338b8790b2244c1250159685400dd"

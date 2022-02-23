@@ -44,37 +44,268 @@ import              HSVaporizeCommon
 mkValidator :: ContractInfo -> VaporizeDatum -> VaporizeAction -> ScriptContext -> Bool
 mkValidator ContractInfo{..} datum r ctx = 
     case (datum, r) of
-        (OrderDatum pkh, Vaporize)      ->  traceIfFalse "HYPESKULL not returned"                   (isOgSkullReturned pkh)         &&&
-                                            traceIfFalse "New Sh Datum Invalid (1)"                 (isVaporizerDatumCorrect pkh)
+        (OrderDatum pkh, Vaporize)      ->  
+            traceIfFalse "HYPESKULL not returned"                   (isOgSkullReturned pkh)         &&&        
+            traceIfFalse "New Sh Datum Invalid (1)"                 (isVaporizerDatumCorrect pkh)
+                where
+                    isOgSkullReturned :: PubKeyHash -> Bool
+                    isOgSkullReturned pkh =
+                        case returnedHs of
+                            [_] -> True 
+                            _   -> False
+                        where
+                            !returnedHs = filter f [(cs, tn, n) | (cs, tn, n) <- Value.flattenValue $ valuePaidTo info pkh]
+                            f (cs, tn, n) = (cs == ciOriginPolicy) &&& (tn /= ciRessTokenName)
+                    
+                    isVaporizerDatumCorrect :: PubKeyHash -> Bool
+                    isVaporizerDatumCorrect pkh =
+                        case updatedShDatum of
+                            Nothing                 -> False
+                            Just (ShadowHsDatum (VaporizeListDatum pkh' _ _)) ->
+                                (pkh == ciDefaultShadowHSOwner) ||| (pkh == pkh')
 
-        (ShadowHsDatum vld, UpdateSh)   ->  traceIfFalse "No PT token consumed"                     hasOnePTTokenSpent              &&&
-                                            traceIfFalse "No matching OS HYPESKULL"                 hasMatchingOgHsSpent            &&&
-                                            traceIfFalse "New Sh Datum Invalid (2)"                 (isOrderListUpdateCorrect vld)
+                    updatedShDatum :: Maybe VaporizeDatum
+                    !updatedShDatum = getUpdatedDatum getContinuingShTxOut
 
-        (PtDatum price, UsePt)          ->  traceIfFalse "Fees not paid"                            (isFeePaid price)               &&&
-                                            traceIfFalse "New PT datum invalid"                     (isNewPTDatumValid price)
+                    continuingOutputs :: [TxOut]
+                    !continuingOutputs = getContinuingOutputs ctx
+
+                    shTn :: TokenName
+                    shTn = 
+                        case flattenedShValue of
+                            [(_, tn, _)]    -> tn
+                            _               -> TokenName emptyByteString
+
+                    getContinuingShTxOut :: Maybe TxOut
+                    !getContinuingShTxOut =
+                            case nftOuts of
+                                [o]     -> Just o
+                                _       -> Nothing
+                                where
+                                    nftOuts     = filter f continuingOutputs
+                                        where
+                                            f :: TxOut -> Bool
+                                            f o =   (2 == length flattenedVal)                                                          &&&
+                                                    (AssetCount (ciVaporPolicy, shTn, 1) `elem` [ AssetCount x | x <- flattenedVal])    &&&
+                                                    (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
+                                                where
+                                                    !txOutVal = txOutValue o
+                                                    !flattenedVal = Value.flattenValue txOutVal
+
+                    flattenedValueSpent :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedValueSpent = Value.flattenValue $ valueSpent info
+
+                    flattenedShValue :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedShValue = filter f flattenedValueSpent
+                        where
+                            f (cs, tn, n) = (cs == ciVaporPolicy) &&& 
+                                            (n == 1)              &&&
+                                            (ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn))
+
+
+        (ShadowHsDatum vld, UpdateSh)   ->  
+            traceIfFalse "No PT token spent"                        hasOnePTTokenSpent                  &&&
+            traceIfFalse "No matching OS HYPESKULL"                 hasMatchingOgHsSpent                &&&
+            traceIfFalse "New Sh Datum Invalid (2)"                 (isOrderListUpdateCorrect vld)
+                where
+                    hasOnePTTokenSpent :: Bool
+                    !hasOnePTTokenSpent = length ptTokenSpent == 1
+                        where
+                            ptTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
+                            !ptTokenSpent =  filter f flattenedValueSpent
+                                where
+                                    f (cs, tn, n) = (cs == ciVaporPolicy)    &&& 
+                                                    (tn == ciPtTokenName)    &&& 
+                                                    (n == 1)
+
+                    hasMatchingOgHsSpent :: Bool
+                    !hasMatchingOgHsSpent =
+                        length ogTokenSpent == 1
+                        where
+                            ogTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
+                            !ogTokenSpent =  filter f flattenedValueSpent
+                                where
+                                    f (cs, tn, n) = (cs == ciOriginPolicy)  &&& 
+                                                    (tn == tn')             &&& 
+                                                    (n == 1)
+                                    tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName shTn
+
+                    isOrderListUpdateCorrect :: VaporizeListDatum -> Bool
+                    isOrderListUpdateCorrect (VaporizeListDatum pkh os ds) = 
+                        case updatedShDatum of
+                            Nothing                 -> False
+                            Just (ShadowHsDatum (VaporizeListDatum pkh' os' ds')) ->
+                                (ds' == ds)                                             &&&
+                                ((pkh == ciDefaultShadowHSOwner) || (pkh == pkh'))      &&&
+                                (1 ==  assetClassValueOf valuePaidToAdmin
+                                    (AssetClass (ciVaporPolicy, TokenName $ ciVTAffix P.<> getVTName os os')))
+                    
+                    updatedShDatum :: Maybe VaporizeDatum
+                    !updatedShDatum = getUpdatedDatum getContinuingShTxOut
+
+                    continuingOutputs :: [TxOut]
+                    !continuingOutputs = getContinuingOutputs ctx
+
+                    shTn :: TokenName
+                    shTn = 
+                        case flattenedShValue of
+                            [(_, tn, _)]    -> tn
+                            _               -> TokenName emptyByteString
+
+                    getContinuingShTxOut :: Maybe TxOut
+                    !getContinuingShTxOut =
+                            case nftOuts of
+                                [o]     -> Just o
+                                _       -> Nothing
+                                where
+                                    nftOuts     = filter f continuingOutputs
+                                        where
+                                            f :: TxOut -> Bool
+                                            f o =   (2 == length flattenedVal)                                                          &&&
+                                                    (AssetCount (ciVaporPolicy, shTn, 1) `elem` [ AssetCount x | x <- flattenedVal])    &&&
+                                                    (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
+                                                where
+                                                    !txOutVal = txOutValue o
+                                                    !flattenedVal = Value.flattenValue txOutVal
+
+                    valuePaidToAdmin :: Value.Value
+                    !valuePaidToAdmin = valuePaidTo info ciAdminPKH
+                    
+                    flattenedValueSpent :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedValueSpent = Value.flattenValue $ valueSpent info
+
+                    flattenedShValue :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedShValue = filter f flattenedValueSpent
+                        where
+                            f (cs, tn, n) = (cs == ciVaporPolicy) &&& 
+                                                (n == 1)              &&&
+                                                (ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn))
+
+        (PtDatum price, UsePt)          ->  
+            traceIfFalse "Fees not paid"                            (isFeePaid price)                   &&&
+            traceIfFalse "New PT datum invalid"                     (isNewPTDatumValid price)
+                where
+                    continuingOutputs :: [TxOut]
+                    !continuingOutputs = getContinuingOutputs ctx
+
+                    getContinuingPtTxOut :: Maybe TxOut
+                    !getContinuingPtTxOut =
+                        case nftOuts of
+                            [o]     -> Just o
+                            _       -> Nothing
+                            where
+                                !nftOuts     = filter f continuingOutputs
+                                    where
+                                        f :: TxOut -> Bool
+                                        f o =   (2 == length flattenedVal)                                                                  &&&
+                                                (AssetCount (ciVaporPolicy, ciPtTokenName, 1) `elem` [ AssetCount x | x <- flattenedVal])   &&&
+                                                (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
+                                            where
+                                                !txOutVal = txOutValue o
+                                                !flattenedVal = Value.flattenValue txOutVal
+                    
+                    hasRessTokenSpent :: Bool
+                    !hasRessTokenSpent =
+                        length ressTokenSpent == 1
+                        where
+                            ressTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
+                            !ressTokenSpent =  filter f (Value.flattenValue valuePaidToAdmin)
+                                where
+                                    f (cs, tn, n) = (cs == ciOriginPolicy)  &&& 
+                                                    (tn == ciRessTokenName) &&& 
+                                                    (n == 1)
+
+                    isFeePaid :: Integer -> Bool
+                    isFeePaid price = Ada.getLovelace (Ada.fromValue valuePaidToAdmin) == price - ciMinUtxoLovelace - ciVaporizerFee - ressDiscount
+                        where
+                            ressDiscount = if hasRessTokenSpent then ciRessDiscount else 0
+                    
+                    isNewPTDatumValid :: Integer -> Bool
+                    isNewPTDatumValid price =
+                        case getUpdatedDatum getContinuingPtTxOut of
+                            Nothing                 -> False
+                            Just (PtDatum newPrice) -> price + ciPriceTierDelta == newPrice
+                    
+                    valuePaidToAdmin :: Value.Value
+                    !valuePaidToAdmin = valuePaidTo info ciAdminPKH
+                                                                                
         
-        (OrderDatum pkh, Refund)        ->  traceIfFalse "Utxo Value not properly returned"         (isValueReturned pkh)
+        (OrderDatum pkh, Refund)        ->  
+            traceIfFalse "Utxo Value not properly returned"         (isValueReturned pkh)
+                where
+                    isValueReturned :: PubKeyHash -> Bool
+                    isValueReturned pkh = valuePaidTo info pkh == ownInputValue P.<> Ada.lovelaceValueOf (ciNegativeOne * ciVaporizerFee)
         
-        (ShadowHsDatum vld, Deliver)    ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)    &&&
-                                            traceIfFalse "New Sh Datum Invalid (3)"                 (isOrderListUpdateCorrect' vld)
+        (ShadowHsDatum vld, Deliver)    ->  
+            traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)        &&&
+            traceIfFalse "New Sh Datum Invalid (3)"                 (isOrderListUpdateCorrect' vld)
+                where
+                    isOrderListUpdateCorrect' :: VaporizeListDatum -> Bool
+                    isOrderListUpdateCorrect' (VaporizeListDatum pkh os ds) = 
+                        case updatedShDatum of
+                            Nothing                 -> False
+                            Just (ShadowHsDatum (VaporizeListDatum pkh' os' ds')) ->
+                                (os == os')                         &&&
+                                (pkh' == pkh)                       &&&
+                                (1 ==  assetClassValueOf (valuePaidTo info pkh)
+                                    (AssetClass ( ciVaporPolicy
+                                                , TokenName $ P.sliceByteString 0 13 (unTokenName shTn)   P.<> 
+                                                "_"                                                       P.<> 
+                                                getVTName' os ds ds')))
+                    
+                    updatedShDatum :: Maybe VaporizeDatum
+                    !updatedShDatum = getUpdatedDatum getContinuingShTxOut
 
-        (_, Withdraw)                   ->  traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
+                    continuingOutputs :: [TxOut]
+                    !continuingOutputs = getContinuingOutputs ctx
 
-        _                               ->  traceIfFalse "Unsupported datum and redeemer pair"      False
+                    shTn :: TokenName
+                    shTn = 
+                        case flattenedShValue of
+                            [(_, tn, _)]    -> tn
+                            _               -> TokenName emptyByteString
+
+                    getContinuingShTxOut :: Maybe TxOut
+                    !getContinuingShTxOut =
+                            case nftOuts of
+                                [o]     -> Just o
+                                _       -> Nothing
+                                where
+                                    nftOuts     = filter f continuingOutputs
+                                        where
+                                            f :: TxOut -> Bool
+                                            f o =   (2 == length flattenedVal)                                                          &&&
+                                                    (AssetCount (ciVaporPolicy, shTn, 1) `elem` [ AssetCount x | x <- flattenedVal])    &&&
+                                                    (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
+                                                where
+                                                    !txOutVal = txOutValue o
+                                                    !flattenedVal = Value.flattenValue txOutVal
+
+                    flattenedValueSpent :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedValueSpent = Value.flattenValue $ valueSpent info
+
+                    flattenedShValue :: [(CurrencySymbol, TokenName, Integer)]
+                    !flattenedShValue = filter f flattenedValueSpent
+                        where
+                            f (cs, tn, n) = (cs == ciVaporPolicy) &&& 
+                                            (n == 1)              &&&
+                                            (ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn))
+
+        (_, Withdraw)                   ->  
+            traceIfFalse "Tx Not signed by Admin"                   (txSignedBy info ciAdminPKH)
+
+        _                               ->  
+            traceIfFalse "Unsupported datum and redeemer pair"      False
     
     where
         info :: TxInfo
         !info = scriptContextTxInfo ctx
 
         ownInputValue :: Value.Value
-        !ownInputValue =
+        ownInputValue =
             case findOwnInput ctx of
                 Nothing         -> Ada.lovelaceValueOf 1
                 Just txInInfo   -> txOutValue $ txInInfoResolved txInInfo
-        
-        continuingOutputs :: [TxOut]
-        !continuingOutputs = getContinuingOutputs ctx
 
         getDatum :: TxOut -> Maybe Datum
         getDatum o = do
@@ -88,70 +319,6 @@ mkValidator ContractInfo{..} datum r ctx =
                 Just o'  -> do
                     Datum d' <- getDatum o'
                     PlutusTx.fromBuiltinData d'
-
-        originTn :: TokenName
-        originTn =
-            case os of
-                [(_, tn, _)]    -> tn
-                _               -> TokenName emptyByteString
-                where   
-                    os = filter f $ Value.flattenValue $ valueSpent info
-                    f (cs, tn, n) = (cs == ciOriginPolicy) &&& (tn /= ciRessTokenName) &&& (n == 1)
-
-        shTn :: TokenName
-        shTn = 
-            case os of
-                [(_, tn, _)]    -> tn
-                _               -> TokenName emptyByteString
-                where   
-                    os = filter f $ Value.flattenValue $ valueSpent info
-                    f (cs, tn, n) = (cs == ciVaporPolicy) &&& 
-                                    (n == 1)              &&&
-                                    (ciShadowHSAffix == P.sliceByteString 13 (lengthOfByteString ciShadowHSAffix) (unTokenName tn))
-
-        isOgSkullReturned :: PubKeyHash -> Bool
-        isOgSkullReturned pkh =
-            case returnedHs of
-                [_] -> True 
-                _   -> False
-            where
-                returnedHs =    [   (cs, tn, n) 
-                                |   (cs, tn, n) <- Value.flattenValue $ valuePaidTo info pkh
-                                ,   cs == ciOriginPolicy
-                                ,   tn == originTn
-                                ]
-        
-        isVaporizerDatumCorrect :: PubKeyHash -> Bool
-        isVaporizerDatumCorrect pkh =
-            case getUpdatedDatum getContinuingShTxOut of
-                Nothing                 -> False
-                Just (ShadowHsDatum (VaporizeListDatum pkh' _ _)) ->
-                    (pkh == ciDefaultShadowHSOwner) ||| (pkh == pkh')
-
-        getContinuingShTxOut :: Maybe TxOut
-        getContinuingShTxOut =
-                case nftOuts of
-                    [o]     -> Just o
-                    _       -> Nothing
-                    where
-                        nftOuts     = filter f continuingOutputs
-                            where
-                                f :: TxOut -> Bool
-                                f o =   (2 == length flattenedVal)                                                          &&&
-                                        (AssetCount (ciVaporPolicy, shTn, 1) `elem` [ AssetCount x | x <- flattenedVal])    &&&
-                                        (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
-                                    where
-                                        !txOutVal = txOutValue o
-                                        !flattenedVal = Value.flattenValue txOutVal
-
-        isOrderListUpdateCorrect :: VaporizeListDatum -> Bool
-        isOrderListUpdateCorrect (VaporizeListDatum pkh os ds) = 
-            case getUpdatedDatum getContinuingShTxOut of
-                Nothing                 -> False
-                Just (ShadowHsDatum (VaporizeListDatum _ os' ds')) ->
-                    (ds' == ds)                                             &&&
-                    (1 ==  assetClassValueOf (valuePaidTo info ciAdminPKH)
-                        (AssetClass (ciVaporPolicy, TokenName $ ciVTAffix P.<> getVTName os os')))
 
         pow :: Integer -> Integer -> Integer    
         pow n e     = if e == 0 then 1 else 2 * pow n (e - 1)
@@ -174,69 +341,6 @@ mkValidator ContractInfo{..} datum r ctx =
                 !oldBinLen   = length oldBin
                 !isPowOf2    = pow 2 vtIdx == diff'
                 !isUnique    = (oldBinLen <= vtIdx) ||| (0 == (oldBin !! vtIdx))
-        
-        hasMatchingOgHsSpent :: Bool
-        hasMatchingOgHsSpent =
-            length ogTokenSpent == 1
-            where
-                ogTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                ogTokenSpent =  filter f (Value.flattenValue (valueSpent info))
-                    where
-                        f (cs, tn, n) = (cs == ciOriginPolicy)  &&& 
-                                        (tn == tn')             &&& 
-                                        (n == 1)
-                        tn' = TokenName $ P.sliceByteString 0 13 $ unTokenName shTn
-        
-        hasRessTokenSpent :: Bool
-        hasRessTokenSpent =
-            length ressTokenSpent == 1
-            where
-                ressTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                ressTokenSpent =  filter f (Value.flattenValue (valuePaidTo info ciAdminPKH))
-                    where
-                        f (cs, tn, n) = (cs == ciOriginPolicy)  &&& 
-                                        (tn == ciRessTokenName) &&& 
-                                        (n == 1)
-
-        hasOnePTTokenSpent :: Bool
-        hasOnePTTokenSpent = length ptTokenSpent == 1
-            where
-                ptTokenSpent :: [(CurrencySymbol, TokenName, Integer)]
-                ptTokenSpent =  filter f (Value.flattenValue (valueSpent info))
-                    where
-                        f (cs, tn, n) = (cs == ciVaporPolicy)    &&& 
-                                        (tn == ciPtTokenName)    &&& 
-                                        (n == 1)
-
-        isFeePaid :: Integer -> Bool
-        isFeePaid price = Ada.getLovelace (Ada.fromValue (valuePaidTo info ciAdminPKH)) == price - ciMinUtxoLovelace - ciVaporizerFee - ressDiscount
-            where 
-                ressDiscount = if hasRessTokenSpent then ciRessDiscount else 0
-        
-        isNewPTDatumValid :: Integer -> Bool
-        isNewPTDatumValid price =
-            case getUpdatedDatum getContinuingPtTxOut of
-                Nothing                 -> False
-                Just (PtDatum newPrice) -> price + ciPriceTierDelta == newPrice
-
-        getContinuingPtTxOut :: Maybe TxOut
-        getContinuingPtTxOut =
-            case nftOuts of
-                [o]     -> Just o
-                _       -> Nothing
-                where
-                    nftOuts     = filter f continuingOutputs
-                        where
-                            f :: TxOut -> Bool
-                            f o =   (2 == length flattenedVal)                                                                  &&&
-                                    (AssetCount (ciVaporPolicy, ciPtTokenName, 1) `elem` [ AssetCount x | x <- flattenedVal])   &&&
-                                    (Ada.getLovelace (Ada.fromValue txOutVal) == ciMinUtxoLovelace)
-                                where
-                                    !txOutVal = txOutValue o
-                                    !flattenedVal = Value.flattenValue txOutVal
-
-        isValueReturned :: PubKeyHash -> Bool
-        isValueReturned pkh = valuePaidTo info pkh == ownInputValue P.<> Ada.lovelaceValueOf (ciNegativeOne * ciVaporizerFee)
 
         getVTName' :: Integer -> Integer -> Integer -> BuiltinByteString
         getVTName' old' old new = 
@@ -252,19 +356,6 @@ mkValidator ContractInfo{..} datum r ctx =
                 !isPowOf2    = pow 2 vtIdx == diff'
                 !isUnique    = (oldBinLen <= vtIdx) ||| (0 == (oldBin !! vtIdx))
                 !isPresent   = 1 == oldBin' !! vtIdx
-
-        isOrderListUpdateCorrect' :: VaporizeListDatum -> Bool
-        isOrderListUpdateCorrect' (VaporizeListDatum pkh os ds) = 
-            case getUpdatedDatum getContinuingShTxOut of
-                Nothing                 -> False
-                Just (ShadowHsDatum (VaporizeListDatum pkh' os' ds')) ->
-                    (os == os')                         &&&
-                    (pkh' == pkh)                       &&&
-                    (1 ==  assetClassValueOf (valuePaidTo info pkh)
-                        (AssetClass ( ciVaporPolicy
-                                    , TokenName $ P.sliceByteString 0 13 (unTokenName shTn)   P.<> 
-                                    "_"                                                       P.<> 
-                                    getVTName' os ds ds')))
 
 
 
